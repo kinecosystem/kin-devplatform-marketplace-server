@@ -63,7 +63,7 @@ export async function getOrder(orderId: string, logger: LoggerInstance): Promise
 
 	checkIfTimedOut(order); // no need to wait for the promise
 
-	logger.info("getOne returning", { orderId, status: order.status, offerId: order.offerId, userId: order.userId });
+	logger.info("getOne returning", { orderId, status: order.status, offerId: order.offerId, contexts: order.contexts });
 	return orderDbToApi(order);
 }
 
@@ -75,25 +75,35 @@ export async function createMarketplaceOrder(offerId: string, user: User, logger
 	}
 
 	let order = await db.Order.getOpenOrder(offerId, user.id);
+	console.log(order);
 
 	if (!order) {
 		const create = async () => {
 			if (await offer.didExceedCap(user.id)) {
 				return undefined;
 			}
+
 			const order = db.MarketplaceOrder.new({
 				offerId,
-				userId: user.id,
 				amount: offer.amount,
 				type: offer.type,
 				status: "opened",
-				meta: offer.meta.order_meta,
 				blockchainData: {
 					sender_address: offer.type === "spend" ? user.walletAddress : offer.blockchainData.sender_address,
 					recipient_address: offer.type === "spend" ? offer.blockchainData.recipient_address : user.walletAddress
 				}
 			});
 			await order.save();
+
+			const context = db.OrderContext.new({
+				user, order,
+				orderId: order.id,
+				userId: user.id,
+				meta: offer.meta.order_meta,
+				role: offer.type === "spend" ? "recipient" : "sender"
+			});
+			await context.save();
+
 			return order;
 		};
 
@@ -145,21 +155,28 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 		}
 
 		order = db.ExternalOrder.new({
-			userId: user.id,
 			offerId: payload.offer.id,
 			amount: payload.offer.amount,
 			type: payload.sub,
 			status: "opened",
-			meta: {
-				title,
-				description
-			},
 			blockchainData: {
 				sender_address,
 				recipient_address
 			}
 		});
 		await order.save();
+
+		const context = db.OrderContext.new({
+			user, order,
+			orderId: order.id,
+			userId: user.id,
+			meta: {
+				title,
+				description
+			},
+			role: payload.sub === "spend" ? "recipient" : "sender"
+		});
+		await context.save();
 
 		logger.info("created new open external order", {
 			offerId: payload.offer.id,
@@ -197,7 +214,11 @@ export async function submitOrder(
 				throw InvalidPollAnswers();
 			}
 
-			await offerContents.savePollAnswers(order.userId, order.offerId, orderId, form);
+			if (order.recipient === null) {
+				throw new Error("couldn't find recipient");
+			}
+
+			await offerContents.savePollAnswers(order.recipient.id, order.offerId, orderId, form);
 		}
 	}
 
@@ -258,13 +279,18 @@ function openOrderDbToApi(order: db.Order): OpenOrder {
 	if (order.status !== "opened") {
 		throw OpenedOrdersOnly();
 	}
+
+	if (order.contexts.length !== 1) {
+		throw new Error("wrong number of contexts");
+	}
+
 	return {
 		id: order.id,
 		offer_id: order.offerId,
 		offer_type: order.type,
 		amount: order.amount,
-		title: order.meta.title,
-		description: order.meta.description,
+		title: order.contexts[0].meta.title,
+		description: order.contexts[0].meta.description,
 		blockchain_data: order.blockchainData,
 		expiration_date: order.expirationDate!.toISOString()
 	};
@@ -275,17 +301,21 @@ function orderDbToApi(order: db.Order): Order {
 		throw OpenedOrdersUnreturnable();
 	}
 
+	if (order.contexts.length !== 1) {
+		throw new Error("wrong number of contexts");
+	}
+
 	return {
 		id: order.id,
 		offer_id: order.offerId,
 		offer_type: order.type,
 		status: order.status,
 		amount: order.amount,
-		title: order.meta.title,
-		description: order.meta.description,
-		call_to_action: order.meta.call_to_action,
+		title: order.contexts[0].meta.title,
+		description: order.contexts[0].meta.description,
+		call_to_action: order.contexts[0].meta.call_to_action,
 		completion_date: (order.currentStatusDate || order.createdDate).toISOString(), // XXX should we separate the dates?
-		content: order.meta.content,  // will be empty for external order
+		content: order.contexts[0].meta.content,  // will be empty for external order
 		blockchain_data: order.blockchainData,
 		error: order.error as ApiError,  // will be null for anything other than "failed"
 		result: order.value,  // will be a coupon code or a payment_confirmation JWT

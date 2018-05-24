@@ -1,12 +1,23 @@
 import * as moment from "moment";
 import { DeepPartial } from "typeorm/common/DeepPartial";
-import { Column, Entity, BaseEntity, SelectQueryBuilder, Brackets } from "typeorm";
+import {
+	Column,
+	Entity,
+	Brackets,
+	ManyToOne,
+	OneToMany,
+	BaseEntity,
+	PrimaryColumn,
+	SelectQueryBuilder,
+} from "typeorm";
 
+import { ApiError } from "../errors";
 import { generateId, IdPrefix } from "../utils";
 
-import { CreationDateModel, register as Register, initializer as Initializer, Model } from "./index";
+import { User } from "./users";
 import { BlockchainData, OfferType, OrderValue } from "./offers";
-import { ApiError } from "../errors";
+import { CreationDateModel, register as Register, initializer as Initializer } from "./index";
+import { ObjectType } from "typeorm/common/ObjectType";
 
 export interface OrderMeta {
 	title: string;
@@ -15,7 +26,7 @@ export interface OrderMeta {
 	content?: string;
 }
 
-export type OrderOrigin = "marketplace" | "external";
+export type OrderOrigin = "marketplace" | "external" | "p2p";
 export type OrderStatus = "completed" | "failed" | "pending";
 export type OpenOrderStatus = OrderStatus | "opened";
 export type OrderStatusAndNegation = OpenOrderStatus | "!opened" | "!completed" | "!failed" | "!pending";
@@ -48,7 +59,7 @@ export type OrderStatic<T extends Order = Order> = {
 	CLASS_ORIGIN: OrderOrigin | null;
 
 	new(): T;
-	createQueryBuilder(): SelectQueryBuilder<BaseEntity>;
+	createQueryBuilder(alias?: string): SelectQueryBuilder<BaseEntity>;
 };
 
 export type GetOrderFilters = {
@@ -67,32 +78,49 @@ export class Order extends CreationDateModel {
 	 * count all offers that are completed, pending but expired, opened but not expired - i.e. not failed and not expired
 	 */
 	public static countByOffer(offerId: string, userId?: string): Promise<number> {
-		const query = Order.createQueryBuilder()
-			.where("offer_id = :offerId", { offerId })
+		let query = Order.createQueryBuilder("ordr"); // don't use 'order', it messed things up
+
+		if (userId) {
+			query = query
+				.innerJoin("ordr.contexts", "context")
+				// .where("context.user_id = :userId", { userId })
+				.where("context.userId = :userId", { userId })
+				// .andWhere("ordr.offer_id = :offerId", { offerId });
+				.andWhere("ordr.offerId = :offerId", { offerId });
+		} else {
+			query = query
+				// .where("ordr.offer_id = :offerId", { offerId });
+				.where("ordr.offerId = :offerId", { offerId });
+		}
+
+		query = query
 			.andWhere(new Brackets(qb => {
-				qb.where("status = :status", { status: "completed" })
+				qb.where("ordr.status = :status", { status: "completed" })
 					.orWhere(
 						new Brackets(qb2 => {
-							qb2.where("status IN (:statuses)", { statuses: ["opened", "pending"] })
-								.andWhere("expiration_date > :date", { date: new Date() });
+							qb2.where("ordr.status IN (:statuses)", { statuses: ["opened", "pending"] })
+								.andWhere("ordr.expiration_date > :date", { date: new Date() });
 						})
 					);
 			}));
-		if (userId) {
-			query.andWhere("user_id = :userId", { userId });
-		}
+
 		return query.getCount();
 	}
 
 	public static getOpenOrder<T extends Order>(offerId: string, userId: string): Promise<T | undefined> {
 		// has at least 2 minutes to complete before expiration
 		const latestExpiration = moment().add(2, "minutes").toDate();
-		const query = Order.createQueryBuilder()
-			.where("offer_id = :offerId", { offerId })
-			.andWhere("status = :status", { status: "opened" })
-			.andWhere("user_id = :userId", { userId })
-			.andWhere("expiration_date > :date", { date: latestExpiration })
-			.orderBy("expiration_date", "DESC"); // if there are a few, get the one with the most time left
+
+		const query = Order.createQueryBuilder("ordr") // don't use 'order', it messed things up
+			.innerJoinAndSelect("ordr.contexts", "context")
+			.where("ordr.offer_id = :offerId", { offerId })
+			.andWhere("ordr.status = :status", { status: "opened" })
+			// .andWhere("context.user_id = :userId", { userId })
+			.andWhere("context.userId = :userId", { userId })
+			.andWhere("ordr.expiration_date > :date", { date: latestExpiration })
+			.orderBy("ordr.expiration_date", "DESC"); // if there are a few, get the one with the most time left
+
+		console.log("getOpenOrder QUERY: ", query.getQueryAndParameters());
 
 		return query.getOne() as Promise<T | undefined>;
 	}
@@ -119,15 +147,17 @@ export class Order extends CreationDateModel {
 	}
 
 	public static getAll<T extends Order>(this: OrderStatic<T> | Function, filters: GetOrderFilters, limit?: number): Promise<T[]> {
-		const query = (this as OrderStatic<T>).createQueryBuilder()
-			.where("user_id = :userId", { userId: filters.userId })
-			.orderBy("current_status_date", "DESC")
+		const query = (this as OrderStatic<T>).createQueryBuilder("ordr") // don't use 'order', it messed things up
+			.innerJoin("ordr.contexts", "context")
+			// .where("context.user_id = :userId", { userId: filters.userId })
+			.where("context.userId = :userId", { userId: filters.userId })
+			.orderBy("ordr.current_status_date", "DESC")
 			.addOrderBy("id", "DESC");
 
 		// updateQueryWithStatus(query, filters.status);
-		updateQueryWithFilter(query, "status", filters.status);
-		updateQueryWithFilter(query, "origin", filters.origin);
-		updateQueryWithFilter(query, "offer_id", filters.offerId);
+		updateQueryWithFilter(query, "ordr.status", filters.status);
+		updateQueryWithFilter(query, "ordr.origin", filters.origin);
+		updateQueryWithFilter(query, "ordr.offer_id", filters.offerId);
 
 		/**
 		 * In case `filters` doesn't contain the `origin`, include the origin of the extending class.
@@ -144,7 +174,7 @@ export class Order extends CreationDateModel {
 		 * No origin is added
 		 */
 		if (!filters.origin && (this as OrderStatic<T>).CLASS_ORIGIN) {
-			query.andWhere("origin = :origin", { origin: (this as OrderStatic<T>).CLASS_ORIGIN });
+			query.andWhere("ordr.origin = :origin", { origin: (this as OrderStatic<T>).CLASS_ORIGIN });
 		}
 
 		if (limit) {
@@ -163,14 +193,11 @@ export class Order extends CreationDateModel {
 	@Column("simple-json", { name: "blockchain_data", nullable: true })
 	public blockchainData!: BlockchainData;
 
-	@Column({ name: "user_id" })
-	public userId!: string;
+	@OneToMany(type => OrderContext, context => context.order, { eager: true, lazy: false })
+	public contexts!: OrderContext[];
 
 	@Column({ name: "offer_id" })
 	public offerId!: string;
-
-	@Column("simple-json")
-	public meta!: OrderMeta;
 
 	@Column("simple-json", { nullable: true })
 	public error?: ApiError| null;
@@ -219,6 +246,74 @@ export class Order extends CreationDateModel {
 	public isMarketplaceOrder() {
 		return this.origin === "marketplace";
 	}
+
+	public get sender(): User | null {
+		for (const context of this.contexts) {
+			if (context.role === "sender") {
+				return context.user;
+			}
+		}
+
+		return null;
+	}
+
+	public get senderMeta(): OrderMeta | null {
+		for (const context of this.contexts) {
+			if (context.role === "sender") {
+				return context.meta;
+			}
+		}
+
+		return null;
+	}
+
+	public get recipient(): User | null {
+		for (const context of this.contexts) {
+			if (context.role === "recipient") {
+				return context.user;
+			}
+		}
+
+		return null;
+	}
+
+	public get recipientMeta(): OrderMeta | null {
+		for (const context of this.contexts) {
+			if (context.role === "recipient") {
+				return context.meta;
+			}
+		}
+
+		return null;
+	}
+}
+
+@Entity({ name: "orders_contexts" })
+@Register
+export class OrderContext extends BaseEntity {
+	public static new(this: ObjectType<OrderContext>, data?: DeepPartial<OrderContext>): OrderContext {
+		return (this as typeof BaseEntity).create(data!) as OrderContext;
+	}
+
+	// @PrimaryColumn({ name: "order_id" })
+	@PrimaryColumn()
+	public readonly orderId!: string;
+
+	// @PrimaryColumn({ name: "user_id" })
+	@PrimaryColumn()
+	public readonly userId!: string;
+
+	@ManyToOne(type => Order, order => order.contexts)
+	public readonly order!: Order;
+
+	@ManyToOne(type => User, user => user.contexts)
+	public readonly user!: User;
+
+	@Column()
+	public readonly role!: "sender" | "recipient";
+
+	@Column("simple-json")
+	public readonly meta!: OrderMeta;
 }
 
 export type MarketplaceOrder = Order;

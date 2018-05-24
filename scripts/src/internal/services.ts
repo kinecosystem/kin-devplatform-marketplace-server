@@ -33,7 +33,8 @@ export type JWTBodyPaymentConfirmation = {
 };
 
 async function getPaymentJWT(order: Order, appId: string): Promise<OrderValue> {
-	const user: User = (await User.findOneById(order.userId))!;
+	const userId = order.type === "earn" ? order.recipient!.appUserId : order.sender!.appUserId;
+	const user: User = (await User.findOneById(userId))!;
 	const payload: JWTBodyPaymentConfirmation = {
 		offer_id: order.offerId,
 		payment: {
@@ -125,7 +126,7 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 				return;
 			} else {
 				order.value = asset.asOrderValue();
-				asset.ownerId = order.userId;
+				asset.ownerId = order.sender!.appUserId;
 				await asset.save();  // XXX should be in a transaction with order.save
 			}
 		}
