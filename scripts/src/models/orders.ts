@@ -112,7 +112,7 @@ export class Order extends CreationDateModel {
 		const latestExpiration = moment().add(2, "minutes").toDate();
 
 		const query = Order.createQueryBuilder("ordr") // don't use 'order', it messed things up
-			.innerJoinAndSelect("ordr.contexts", "context")
+			.leftJoinAndSelect("ordr.contexts", "context")
 			.where("ordr.offer_id = :offerId", { offerId })
 			.andWhere("ordr.status = :status", { status: "opened" })
 			// .andWhere("context.user_id = :userId", { userId })
@@ -193,8 +193,8 @@ export class Order extends CreationDateModel {
 	@Column("simple-json", { name: "blockchain_data", nullable: true })
 	public blockchainData!: BlockchainData;
 
-	@OneToMany(type => OrderContext, context => context.order, { eager: true, lazy: false })
-	public contexts!: OrderContext[];
+	@OneToMany(type => OrderContext, context => context.order)
+	public contexts: OrderContext[] = [];
 
 	@Column({ name: "offer_id" })
 	public offerId!: string;
