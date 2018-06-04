@@ -34,7 +34,7 @@ export type JWTBodyPaymentConfirmation = {
 
 async function getPaymentJWT(order: Order, appId: string): Promise<OrderValue> {
 	const userId = order.type === "earn" ? order.recipient!.appUserId : order.sender!.appUserId;
-	const user: User = (await User.findOneById(userId))!;
+	const user: User = (await User.findOne(userId))!;
 	const payload: JWTBodyPaymentConfirmation = {
 		offer_id: order.offerId,
 		payment: {
@@ -56,7 +56,8 @@ async function getPaymentJWT(order: Order, appId: string): Promise<OrderValue> {
 }
 
 export async function paymentComplete(payment: CompletedPayment, logger: LoggerInstance) {
-	const order = await db.Order.findOneById(payment.id);
+	const order = await db.Order.getOne(payment.id);
+
 	if (!order) {
 		logger.error(`received payment for unknown order id ${ payment.id }`);
 		return;

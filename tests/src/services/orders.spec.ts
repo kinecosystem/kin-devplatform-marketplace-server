@@ -66,7 +66,7 @@ describe("test orders", async () => {
 
 		const user: User = await helpers.createUser();
 		const offers = await getOffers(user.id, user.appId, {}, getDefaultLogger());
-		const offer = await Offer.findOneById(offers.offers[0].id);
+		const offer = await Offer.findOne(offers.offers[0].id);
 		for (let i = 0; i < offer.cap.per_user && i < offer.cap.total; i++) {
 			const openOrder = await createMarketplaceOrder(offer.id, user, getDefaultLogger());
 			const order = await submitOrder(openOrder.id, "{}", user.walletAddress, user.appId, getDefaultLogger());
@@ -80,7 +80,7 @@ describe("test orders", async () => {
 	test("expiration on openOrder is 10 minutes", async () => {
 		const user: User = await helpers.createUser();
 		const offers = await getOffers(user.id, user.appId, {}, getDefaultLogger());
-		const offer = await Offer.findOneById(offers.offers[0].id);
+		const offer = await Offer.findOne(offers.offers[0].id);
 		const now = moment();
 		const openOrder = await createMarketplaceOrder(offer.id, user, getDefaultLogger());
 		expect(moment(openOrder.expiration_date).diff(now, "minutes")).toBe(10);
@@ -109,5 +109,4 @@ describe("test orders", async () => {
 
 		expect(offersIds.sort()).toEqual(apiOffersIds.sort());
 	});
-
 });

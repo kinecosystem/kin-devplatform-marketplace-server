@@ -31,15 +31,17 @@ export type OrderStatus = "completed" | "failed" | "pending";
 export type OpenOrderStatus = OrderStatus | "opened";
 export type OrderStatusAndNegation = OpenOrderStatus | "!opened" | "!completed" | "!failed" | "!pending";
 
-function updateQueryWithStatus(query: SelectQueryBuilder<any>, status?: OrderStatusAndNegation | null) {
+function updateQueryWithStatus(query: SelectQueryBuilder<any>, status?: OrderStatusAndNegation | null, alias?: string) {
 	if (!status) {
 		return;
 	}
 
+	const fieldName = alias ? `${ alias }.status` : "status";
+
 	if (status.startsWith("!")) {
-		query.andWhere("status != :status", { status: status.substring(1) });
+		query.andWhere(`${ fieldName } != :status`, { status: status.substring(1) });
 	} else {
-		query.andWhere("status = :status", { status });
+		query.andWhere(`${ fieldName } = :status`, { status });
 	}
 }
 
@@ -120,8 +122,6 @@ export class Order extends CreationDateModel {
 			.andWhere("ordr.expiration_date > :date", { date: latestExpiration })
 			.orderBy("ordr.expiration_date", "DESC"); // if there are a few, get the one with the most time left
 
-		console.log("getOpenOrder QUERY: ", query.getQueryAndParameters());
-
 		return query.getOne() as Promise<T | undefined>;
 	}
 
@@ -134,13 +134,14 @@ export class Order extends CreationDateModel {
 	 * get NOT open order: getOne("id1", "!opened")
 	 */
 	public static getOne<T extends Order>(this: OrderStatic<T> | Function, orderId: string, status?: OrderStatusAndNegation): Promise<T | undefined> {
-		const query = (this as OrderStatic<T>).createQueryBuilder()
-			.where("id = :orderId", { orderId });
+		const query = (this as OrderStatic<T>).createQueryBuilder("ordr")
+			.innerJoinAndSelect("ordr.contexts", "context")
+			.where("ordr.id = :orderId", { orderId });
 
-		updateQueryWithStatus(query, status);
+		updateQueryWithStatus(query, status, "ordr");
 
 		if ((this as OrderStatic<T>).CLASS_ORIGIN) {
-			query.andWhere("origin = :origin", { origin: (this as OrderStatic<T>).CLASS_ORIGIN });
+			query.andWhere("ordr.origin = :origin", { origin: (this as OrderStatic<T>).CLASS_ORIGIN });
 		}
 
 		return query.getOne() as Promise<T | undefined>;
@@ -148,7 +149,7 @@ export class Order extends CreationDateModel {
 
 	public static getAll<T extends Order>(this: OrderStatic<T> | Function, filters: GetOrderFilters, limit?: number): Promise<T[]> {
 		const query = (this as OrderStatic<T>).createQueryBuilder("ordr") // don't use 'order', it messed things up
-			.innerJoin("ordr.contexts", "context")
+			.leftJoinAndSelect("ordr.contexts", "context")
 			// .where("context.user_id = :userId", { userId: filters.userId })
 			.where("context.userId = :userId", { userId: filters.userId })
 			.orderBy("ordr.current_status_date", "DESC")
@@ -194,7 +195,7 @@ export class Order extends CreationDateModel {
 	public blockchainData!: BlockchainData;
 
 	@OneToMany(type => OrderContext, context => context.order)
-	public contexts: OrderContext[] = [];
+	public contexts!: OrderContext[];
 
 	@Column({ name: "offer_id" })
 	public offerId!: string;
@@ -220,13 +221,16 @@ export class Order extends CreationDateModel {
 	public setStatus(status: OpenOrderStatus) {
 		this.status = status;
 		this.currentStatusDate = new Date();
+
 		switch (this.status) {
 			case "pending":
 				this.expirationDate = moment(this.currentStatusDate).add(45, "seconds").toDate();
 				break;
+
 			case "opened":
 				this.expirationDate = moment(this.currentStatusDate).add(10, "minutes").toDate();
 				break;
+
 			default:
 				this.expirationDate = null as any;
 		}

@@ -23,6 +23,7 @@ import {
 	OpenedOrdersUnreturnable
 } from "../../errors";
 import { ExternalSpendOrderJWT, ExternalEarnOrderJWT } from "./native_offers";
+import { or } from "sequelize";
 
 const CREATE_ORDER_RESOURCE_ID = "locks:orders:create";
 
@@ -69,13 +70,12 @@ export async function getOrder(orderId: string, logger: LoggerInstance): Promise
 
 export async function createMarketplaceOrder(offerId: string, user: User, logger: LoggerInstance): Promise<OpenOrder> {
 	logger.info("creating marketplace order for", { offerId, userId: user.id });
-	const offer = await offerDb.Offer.findOneById(offerId);
+	const offer = await offerDb.Offer.findOne(offerId);
 	if (!offer) {
 		throw NoSuchOffer(offerId);
 	}
 
 	let order = await db.Order.getOpenOrder(offerId, user.id);
-	console.log(order);
 
 	if (!order) {
 		const create = async () => {
@@ -104,7 +104,7 @@ export async function createMarketplaceOrder(offerId: string, user: User, logger
 			});
 			await context.save();
 
-			return order;
+			return await db.Order.getOne(order.id);
 		};
 
 		// order = await lock(createOrderResourceId, create());
@@ -185,25 +185,31 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 		});
 	}
 
-	return openOrderDbToApi(order);
+	return openOrderDbToApi((await db.Order.getOne(order.id))!);
 }
 
 export async function submitOrder(
 	orderId: string, form: string | undefined, walletAddress: string, appId: string, logger: LoggerInstance): Promise<Order> {
 
-	const order = await db.Order.findOne({ id: orderId }) as db.MarketplaceOrder | db.ExternalOrder;
+	const order = await db.Order.getOne(orderId) as db.MarketplaceOrder | db.ExternalOrder;
+
+	console.log("(submitOrder) found order: ", order);
+
 	if (!order) {
 		throw NoSuchOrder(orderId);
 	}
+
 	if (order.status !== "opened") {
 		return orderDbToApi(order);
 	}
+
 	if (order.isExpired()) {
 		throw OpenOrderExpired(orderId);
 	}
 
 	if (order.isMarketplaceOrder()) {
-		const offer = await offerDb.Offer.findOneById(order.offerId);
+		console.log("(submitOrder) a marketplace order");
+		const offer = await offerDb.Offer.findOne(order.offerId);
 		if (!offer) {
 			throw NoSuchOffer(order.offerId);
 		}
@@ -220,8 +226,11 @@ export async function submitOrder(
 
 			await offerContents.savePollAnswers(order.recipient.id, order.offerId, orderId, form);
 		}
+	} else {
+		console.log("(submitOrder) NOT a marketplace order");
 	}
 
+	console.log("(submitOrder) changing to pending");
 	order.setStatus("pending");
 	await order.save();
 	logger.info("order changed to pending", { orderId });

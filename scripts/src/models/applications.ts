@@ -23,7 +23,7 @@ export class Application extends CreationDateModel {
 
 	@ManyToMany(type => Offer)
 	@JoinTable()
-	public offers: Offer[] = [];
+	public offers!: Offer[];
 }
 
 @Entity({ name: "app_whitelists" })

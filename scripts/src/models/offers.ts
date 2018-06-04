@@ -63,7 +63,7 @@ export class Offer extends CreationDateModel {
 
 	// @ManyToOne(type => OfferOwner, owner => owner.offers) // XXX requires a generated value
 	public get owner(): Promise<OfferOwner | undefined> {
-		return OfferOwner.findOneById(this.ownerId);
+		return OfferOwner.findOne(this.ownerId);
 	}
 
 	public async didExceedCap(userId: string): Promise<boolean> {
