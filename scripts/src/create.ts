@@ -7,22 +7,14 @@ getConfig();
 
 import * as fs from "fs";
 import { init as initModels, close as closeModels } from "./models";
-import { PageType, Poll, Tutorial } from "./public/services/offer_contents";
+import { PageType, Poll, Quiz, Tutorial } from "./public/services/offer_contents";
 import { createEarn, createSpend } from "./create_data/offers";
-import { Offer } from "./models/offers";
+import { ContentType, Offer } from "./models/offers";
 import { StringMap, Application } from "./models/applications";
 import "./models/orders";
 import "./models/users";
 
 const STELLAR_ADDRESS = process.env.STELLAR_ADDRESS;  // address to use instead of the ones defined in the data
-const REDUCE_AMOUNT = !!process.env.REDUCE_AMOUNT;  // divide amounts by 1000
-
-function reduceAmount(amount: number): number {
-	if (REDUCE_AMOUNT) {
-		amount = Math.max(Math.floor(amount / 1000), 1);
-	}
-	return amount;
-}
 
 async function createApp(appId: string, name: string, keyNames: string[], apiKey?: string) {
 	const jwtPublicKeys: StringMap = {};
@@ -45,11 +37,7 @@ async function createApp(appId: string, name: string, keyNames: string[], apiKey
 
 function readTitle(title: string): string {
 	// read until first space
-	if (title.includes(" ")) {
-		return title.substr(0, title.indexOf(" "));
-	} else {
-		return title;
-	}
+	return title.split(/ +/, 1)[0];
 }
 
 function toMap(data: string[][]): Array<Map<string, string>> {
@@ -67,9 +55,9 @@ function toMap(data: string[][]): Array<Map<string, string>> {
 }
 
 async function getAllApps(): Promise<Application[]> {
-	 return await Application.createQueryBuilder("app")
+	return await Application.createQueryBuilder("app")
 		.leftJoinAndSelect("app.offers", "offer")
-		 .getMany();
+		.getMany();
 }
 
 async function parseSpend(data: string[][]) {
@@ -83,7 +71,7 @@ async function parseSpend(data: string[][]) {
 			v.get("Title")!,
 			v.get("Description")!,
 			v.get("Image")!,
-			reduceAmount(parseInt(v.get("Amount")!, 10)),
+			parseInt(v.get("Amount")!, 10),
 			parseInt(v.get("CapTotal")!, 10),
 			parseInt(v.get("CapPerUser")!, 10),
 			v.get("OrderTitle")!,
@@ -110,13 +98,13 @@ async function parseSpend(data: string[][]) {
 	}
 }
 
-async function parseEarn(data: string[][]) {
+async function parseEarn(data: string[][], contentType: ContentType) {
 	const list = toMap(data);
 
-	const poll: Poll | Tutorial = { pages: [] };
+	const poll: Quiz | Poll | Tutorial = { pages: [] };
 	let offer: Map<string, string> | undefined;
 
-	async function createEarnInner(v: Map<string, string>, poll: Poll | Tutorial): Promise<Offer> {
+	async function createEarnInner(v: Map<string, string>, poll: Quiz | Poll | Tutorial): Promise<Offer> {
 		const offer = await createEarn(
 			v.get("OfferName")!,
 			STELLAR_ADDRESS || v.get("WalletAddress")!,
@@ -124,11 +112,12 @@ async function parseEarn(data: string[][]) {
 			v.get("Title")!,
 			v.get("Description")!,
 			v.get("Image")!,
-			reduceAmount(parseInt(v.get("Amount")!, 10)),
+			parseInt(v.get("Amount")!, 10),
 			parseInt(v.get("CapTotal")!, 10),
 			parseInt(v.get("CapPerUser")!, 10),
 			v.get("OrderTitle")!,
 			v.get("OrderDescription")!,
+			contentType,
 			poll);
 		return offer;
 	}
@@ -159,9 +148,31 @@ async function parseEarn(data: string[][]) {
 					],
 				},
 			});
+		} else if (v.get("PollPageType")! === "TimedFullPageMultiChoice") {
+			(poll as Quiz).pages.push({
+				type: PageType.TimedFullPageMultiChoice,
+				title: v.get("PollTitle")!,
+				description: v.get("PollDescription")!,
+				question: {
+					id: v.get("PollQuestionId")!,
+					answers: [
+						v.get("PollAnswer1")!,
+						v.get("PollAnswer2")!,
+						v.get("PollAnswer3")!,
+						v.get("PollAnswer4")!,
+					],
+				},
+				rightAnswer: parseInt(v.get("rightAnswer")!, 10),
+				amount: parseInt(v.get("amount")!, 10),
+			});
 		} else if (v.get("PollPageType")! === "EarnThankYou") {
 			(poll as Poll).pages.push({
 				type: PageType.EarnThankYou,
+				description: v.get("PollDescription")!
+			});
+		} else if (v.get("PollPageType")! === "SuccessBasedThankYou") {
+			(poll as Quiz).pages.push({
+				type: PageType.SuccessBasedThankYou,
 				description: v.get("PollDescription")!
 			});
 		} else if (v.get("PollPageType")! === "ImageAndText") {
@@ -191,34 +202,34 @@ async function parseEarn(data: string[][]) {
 
 initModels().then(async () => {
 	// create apps
-	const app1 = await createApp("smpl", "Sample Application", ["default"], Application.SAMPLE_API_KEY);
+	const app1 = await createApp("smpl", "Sample Application", ["default", "1"], Application.SAMPLE_API_KEY);
 	const app2 = await createApp("kik", "Kik Messenger", ["1"]);
-	const apps = [app1, app2];
+	const app3 = await createApp("test", "Test App", ["es256_0", "rs512_0"]);
+
+	const apps = [app1, app2, app3];
 	const offers: Offer[] = await Offer.find(); // add all offers to both apps
 
 	// adding all offers to all apps
 	for (const app of apps) {
 		app.offers = offers;
 		await app.save();
+		console.log(`created application`, app.id);
 	}
-	console.log(`created applications`, app1.id, app2.id);
 
 	// create offers from csv
 	const parseCsv = require("csv-parse/lib/sync");
 
-	for (let i = 1; i <= 3; i++) {
+	for (let i = 1; i <= 4; i++) {
 		const spend = fs.readFileSync(`./data/${i}.csv`);
 		const parsed = parseCsv(spend);
 		const title = readTitle(parsed[0][0]);
+		const contentType = parsed[0][0].split(/ +/, 2)[1].toLowerCase() as ContentType;
 		if (title === "Spend") {
 			await parseSpend(parsed);
-			console.log(`created spend offers`);
+			console.log(`created spend:${contentType} offers`);
 		} else if (title === "Earn") {
-			await parseEarn(parsed);
-			console.log(`created earn offers`);
-		} else if (title === "Tutorial") {
-			await parseEarn(parsed);
-			console.log(`created tutorial offers`);
+			await parseEarn(parsed, contentType);
+			console.log(`created earn:${contentType} offers`);
 		} else {
 			throw new Error("Failed to parse " + parsed[0][0]);
 		}

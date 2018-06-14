@@ -46,13 +46,16 @@ pull:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml pull
 
 up:
-	. ./secrets/.secrets && docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml up
+	. ./secrets/.secrets && docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml up -d
 
 up-remote:
 	. ./remote/.secrets && docker-compose -f remote/docker-compose.yaml  up -d
 
-up-dev:
-	. ./secrets/.secrets && docker-compose -f docker-compose.dev.yaml -f docker-compose.yaml -f docker-compose.deps.yaml up
+up-dev: db-docker
+	. ./secrets/.secrets && docker-compose -f docker-compose.dev.yaml -f docker-compose.yaml -f docker-compose.deps.yaml up -d
+
+logs:
+	docker-compose -f docker-compose.dev.yaml -f docker-compose.yaml -f docker-compose.deps.yaml logs 
 
 down:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml down
@@ -63,15 +66,23 @@ down-remote:
 psql:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm psql
 
+redis-cli:
+	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm redis-cli
+
 db-docker:
-	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
 	. ./secrets/.secrets && docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm create-db
 
 db-docker-remote:
 	docker-compose -f remote/docker-compose.yaml run --rm psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
 	. ./remote/.secrets && docker-compose -f remote/docker-compose.yaml  run --rm create-db
 
-test-system-docker: db-docker
+clear-db:
+	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
+
+clear-redis:
+	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm redis-cli del cursor
+
+test-system-docker: clear-db db-docker clear-redis
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm test-system
 
 test-system-remote-docker:

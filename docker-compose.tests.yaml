@@ -8,6 +8,12 @@ services:
     entrypoint: psql -h postgres -U user -d ecosystem
     environment:
       PGPASSWORD: pass
+  
+  redis-cli:
+    image: redis:4.0
+    links:
+      - redis
+    entrypoint: redis-cli -h redis -p 6379
 
   create-db:
     image: kinecosystem/marketplace-server:latest
@@ -24,7 +30,6 @@ services:
       APP_DB_HOST: postgres
       APP_DB_DATABASE: ecosystem
       STELLAR_ADDRESS: ${STELLAR_ADDRESS}
-      REDUCE_AMOUNT: 'true'
 
   test-system:
     image: kinecosystem/marketplace-server:latest
@@ -39,7 +44,7 @@ services:
     command: npm run test-system
 
   generate-funding-address:
-    image: kinecosystem/payment-service:9ae7d7a
+    image: kinecosystem/payment-service:29016f6
     command: pipenv run python generate_funding_address.py
     volumes:
       - ./secrets:/secrets
