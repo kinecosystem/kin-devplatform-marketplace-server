@@ -48,11 +48,17 @@ pull:
 up:
 	. ./secrets/.secrets && docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml up
 
+up-remote:
+	. ./remote/.secrets && docker-compose -f remote/docker-compose.yaml  up -d
+
 up-dev:
 	. ./secrets/.secrets && docker-compose -f docker-compose.dev.yaml -f docker-compose.yaml -f docker-compose.deps.yaml up
 
 down:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml down
+
+down-remote:
+	docker-compose -f remote/docker-compose.yaml down
 
 psql:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm psql
@@ -61,8 +67,15 @@ db-docker:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
 	. ./secrets/.secrets && docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm create-db
 
+db-docker-remote:
+	docker-compose -f remote/docker-compose.yaml run --rm psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
+	. ./remote/.secrets && docker-compose -f remote/docker-compose.yaml  run --rm create-db
+
 test-system-docker: db-docker
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm test-system
+
+test-system-remote-docker:
+	docker-compose -f remote/docker-compose.yaml run --rm test-system
 
 generate-funding-address:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run generate-funding-address
