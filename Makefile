@@ -61,10 +61,13 @@ down:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml down
 
 down-remote:
-	docker-compose -f remote/docker-compose.yaml down
+	. ./secrets/.secrets && docker-compose -f remote/docker-compose.yaml down
 
 psql:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm psql
+
+psql-remote:
+	. ./secrets/.secrets && docker-compose -f remote/docker-compose.yaml run --rm psql
 
 redis-cli:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm redis-cli
@@ -73,11 +76,14 @@ db-docker:
 	. ./secrets/.secrets && docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm create-db
 
 db-docker-remote:
-	docker-compose -f remote/docker-compose.yaml run --rm psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
+	. ./secrets/.secrets && docker-compose -f remote/docker-compose.yaml run --rm psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
 	. ./remote/.secrets && docker-compose -f remote/docker-compose.yaml  run --rm create-db
 
 clear-db:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
+
+clear-db-remote:
+	. ./secrets/.secrets && docker-compose -f remote/docker-compose.yaml run --rm psql -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
 
 clear-redis:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm redis-cli del cursor
@@ -86,7 +92,7 @@ test-system-docker: clear-db db-docker clear-redis
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run --rm test-system
 
 test-system-remote-docker:
-	docker-compose -f remote/docker-compose.yaml run --rm test-system
+	. ./secrets/.secrets && docker-compose -f remote/docker-compose.yaml run --rm test-system
 
 generate-funding-address:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml -f docker-compose.tests.yaml run generate-funding-address

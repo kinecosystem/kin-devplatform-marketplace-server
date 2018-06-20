@@ -3,7 +3,7 @@ version: "3"
 services:
 
   marketplace-server:
-    image: kinecosystem/marketplace-server:718e885
+    image: kinecosystem/marketplace-server:${MARKETPLACE_COMMIT}
     ports:
       - 80:3000
     links:
@@ -27,7 +27,7 @@ services:
       APP_DB_DATABASE: ecosystem
 
   marketplace-internal:
-    image: kinecosystem/marketplace-server:718e885
+    image: kinecosystem/marketplace-server:${MARKETPLACE_COMMIT}
     command: npm run start-internal
     ports:
       - 3000
@@ -49,7 +49,7 @@ services:
       POSTGRES_DB: ecosystem
 
   payment-service:
-    image: kinecosystem/payment-service:29016f6
+    image: kinecosystem/payment-service:${PAYMENT_SERVICE}
     ports:
       - 3000
     links:
@@ -72,7 +72,7 @@ services:
 
 
   payment-worker:
-    image: kinecosystem/payment-service:29016f6
+    image: kinecosystem/payment-service:${PAYMENT_SERVICE}
     command: pipenv run rq worker --url redis://redis:6379/0
     links:
       - redis
@@ -101,7 +101,7 @@ services:
       PGPASSWORD: pass
 
   create-db:
-    image: kinecosystem/marketplace-server:latest
+    image: kinecosystem/marketplace-server:${MARKETPLACE_COMMIT}
     links:
       - postgres
     command: npm run create-db
