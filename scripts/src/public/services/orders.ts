@@ -21,14 +21,15 @@ import {
 	OpenedOrdersOnly,
 	OpenedOrdersUnreturnable,
 	OpenOrderExpired,
-	TransactionTimeout
+	TransactionTimeout,
+	NoSuchPublicKey // change to no user later
 } from "../../errors";
 
 import { Paging } from "./index";
 import * as payment from "./payment";
 import { addWatcherEndpoint } from "./payment";
 import * as offerContents from "./offer_contents";
-import { ExternalEarnOrderJWT, ExternalSpendOrderJWT } from "./native_offers";
+import { ExternalEarnOrderJWT, ExternalSpendOrderJWT, ExternalPayToUserOrderJwt } from "./native_offers";
 import {
 	create as createEarnTransactionBroadcastToBlockchainSubmitted
 } from "../../analytics/events/earn_transaction_broadcast_to_blockchain_submitted";
@@ -163,7 +164,7 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 			description = (payload as ExternalEarnOrderJWT).recipient.description;
 			sender_address = app.walletAddresses.sender;
 			recipient_address = user.walletAddress;
-		} else {
+		} else if (payload.sub === "spend") {
 			// spend or pay_to_user
 			await addWatcherEndpoint([app.walletAddresses.recipient]);  // XXX how can we avoid this and only do this for the first ever time we see this address?
 			title = (payload as ExternalSpendOrderJWT).sender.title;
@@ -171,6 +172,16 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 			sender_address = user.walletAddress;
 			// TODO in case of pay_to_user, needs another lookup for the recipient_user_wallet
 			recipient_address = app.walletAddresses.recipient;
+		} else {
+			title = (payload as ExternalPayToUserOrderJwt).sender.title;
+			description = (payload as ExternalPayToUserOrderJwt).sender.description;
+			sender_address = user.walletAddress;
+			const recipient_user = await User.findOne({ appId: app.id, appUserId: (payload as ExternalPayToUserOrderJwt).recipient.user_id });
+			if (!recipient_user) {
+				throw NoSuchPublicKey;
+			}
+			recipient_address = recipient_user.walletAddress;
+			await addWatcherEndpoint([recipient_address]);
 		}
 
 		order = db.ExternalOrder.new({
@@ -356,5 +367,5 @@ function checkIfTimedOut(order: db.Order): Promise<void> {
 }
 
 function getLockResource(type: "create" | "get", ...ids: string[]) {
-	return `locks:orders:${ type }:${ ids.join(":") }`;
+	return `locks:orders:${type}:${ids.join(":")}`;
 }
