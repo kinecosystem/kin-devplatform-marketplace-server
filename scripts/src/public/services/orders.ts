@@ -310,7 +310,7 @@ export async function getOrderHistory(
 	return {
 		orders: orders.map(order => {
 			checkIfTimedOut(order); // no need to wait for the promise
-			return orderDbToApi(order);
+			return orderDbToApi(order, userId);
 		}),
 		paging: {
 			cursors: {
@@ -339,11 +339,14 @@ function openOrderDbToApi(order: db.Order): OpenOrder {
 	};
 }
 
-function orderDbToApi(order: db.Order): Order {
+function orderDbToApi(order: db.Order, userId?: string): Order {
 	if (order.status === "opened") {
 		throw OpenedOrdersUnreturnable();
 	}
 
+	if (userId && order.recipientId === userId && order.recipientMeta) {
+		order.meta = order.recipientMeta;
+	}
 	const apiOrder = Object.assign(
 		pick(order, "id", "origin", "status", "amount"), {
 			result: order.value,
