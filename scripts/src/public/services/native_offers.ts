@@ -26,7 +26,7 @@ export type PayToUserPayload = EarnPayload & SpendPayload;
 export type ExternalEarnOrderJWT = JWTClaims<"earn"> & EarnPayload;
 export type ExternalSpendOrderJWT = JWTClaims<"spend"> & SpendPayload;
 export type ExternalPayToUserOrderJwt = JWTClaims<"pay_to_user"> & PayToUserPayload;
-export type ExternalOrderJWT = ExternalEarnOrderJWT | ExternalSpendOrderJWT;
+export type ExternalOrderJWT = ExternalEarnOrderJWT | ExternalSpendOrderJWT | ExternalPayToUserOrderJwt;
 
 export async function validateExternalOrderJWT(jwt: string, appUserId: string, logger: LoggerInstance): Promise<ExternalOrderJWT> {
 	const decoded = await verifyJWT<PayToUserPayload, "spend" | "earn" | "pay_to_user">(jwt, logger);

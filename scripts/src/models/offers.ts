@@ -22,7 +22,7 @@ export type Cap = {
 	per_user: number;
 };
 
-export type OfferType = "spend" | "earn";
+export type OfferType = "spend" | "earn" | "pay_to_user";
 export type ContentType = "quiz" | "poll" | "tutorial" | "coupon";
 
 @Entity({ name: "offer_owners" })

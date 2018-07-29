@@ -159,6 +159,9 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 		let description: string;
 		let sender_address: string;
 		let recipient_address: string;
+		let recipient_user: User | undefined;
+		let recipient_title: string | undefined;
+		let recipient_description: string | undefined;
 		if (payload.sub === "earn") {
 			title = (payload as ExternalEarnOrderJWT).recipient.title;
 			description = (payload as ExternalEarnOrderJWT).recipient.description;
@@ -176,16 +179,19 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 			title = (payload as ExternalPayToUserOrderJwt).sender.title;
 			description = (payload as ExternalPayToUserOrderJwt).sender.description;
 			sender_address = user.walletAddress;
-			const recipient_user = await User.findOne({ appId: app.id, appUserId: (payload as ExternalPayToUserOrderJwt).recipient.user_id });
+			recipient_user = await User.findOne({ appId: app.id, appUserId: (payload as ExternalPayToUserOrderJwt).recipient.user_id });
 			if (!recipient_user) {
 				throw NoSuchPublicKey;
 			}
+			recipient_title = (payload as ExternalPayToUserOrderJwt).recipient.title;
+			recipient_description = (payload as ExternalPayToUserOrderJwt).recipient.description;
 			recipient_address = recipient_user.walletAddress;
 			await addWatcherEndpoint([recipient_address]);
 		}
 
 		order = db.ExternalOrder.new({
 			userId: user.id,
+			recipientId: recipient_user ? recipient_user.id : undefined,
 			offerId: payload.offer.id,
 			amount: payload.offer.amount,
 			type: payload.sub,
@@ -194,6 +200,10 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 				title,
 				description
 			},
+			recipientMeta: recipient_title ? {
+				title: recipient_title,
+				description: recipient_description
+			} : undefined,
 			blockchainData: {
 				sender_address,
 				recipient_address
