@@ -198,7 +198,7 @@ export class Order extends CreationDateModel {
 	@Column("simple-json")
 	public meta!: OrderMeta;
 
-	@Column("simple-json", { nullable: true })
+	@Column("simple-json", { name: "recipient_meta", nullable: true })
 	public recipientMeta?: OrderMeta;
 
 	@Column("simple-json", { nullable: true })

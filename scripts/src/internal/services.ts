@@ -157,8 +157,6 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 			}
 		}
 	} else if (order.isExternalOrder()) {
-		// XXX for p2p don't put the JWT in the recipient order's value
-		// XXX for p2p create a completed order for the recipient too
 		order.value = await getPaymentJWT(order, payment.app_id);
 	}
 

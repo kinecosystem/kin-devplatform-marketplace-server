@@ -160,6 +160,7 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 		let description: string;
 		let sender_address: string;
 		let recipient_address: string;
+		let requestPayload: ExternalPayToUserOrderJwt;
 		let recipient_user: User | undefined;
 		let recipient_title: string | undefined;
 		let recipient_description: string | undefined;
@@ -169,26 +170,26 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 			sender_address = app.walletAddresses.sender;
 			recipient_address = user.walletAddress;
 		} else if (payload.sub === "spend") {
-			// spend or pay_to_user
 			await addWatcherEndpoint([app.walletAddresses.recipient]);  // XXX how can we avoid this and only do this for the first ever time we see this address?
 			title = (payload as ExternalSpendOrderJWT).sender.title;
 			description = (payload as ExternalSpendOrderJWT).sender.description;
 			sender_address = user.walletAddress;
-			// TODO in case of pay_to_user, needs another lookup for the recipient_user_wallet
 			recipient_address = app.walletAddresses.recipient;
 		} else {
-			title = (payload as ExternalPayToUserOrderJwt).sender.title;
-			description = (payload as ExternalPayToUserOrderJwt).sender.description;
+			// p2p
+			requestPayload = (payload as ExternalPayToUserOrderJwt)
+			title = requestPayload.sender.title;
+			description = requestPayload.sender.description;
 			sender_address = user.walletAddress;
-			recipient_user = await User.findOne({ appId: app.id, appUserId: (payload as ExternalPayToUserOrderJwt).recipient.user_id });
+			recipient_user = await User.findOne({ appId: app.id, appUserId: requestPayload.recipient.user_id });
 			if (!recipient_user) {
-				throw NoSuchUser(app.id, (payload as ExternalPayToUserOrderJwt).recipient.user_id);
+				throw NoSuchUser(app.id, requestPayload.recipient.user_id);
 			}
 			if (!recipient_user.activated) {
 				throw RecipientMissingTOS();
 			}
-			recipient_title = (payload as ExternalPayToUserOrderJwt).recipient.title;
-			recipient_description = (payload as ExternalPayToUserOrderJwt).recipient.description;
+			recipient_title = requestPayload.recipient.title;
+			recipient_description = requestPayload.recipient.description;
 			recipient_address = recipient_user.walletAddress;
 			await addWatcherEndpoint([recipient_address]);
 		}
