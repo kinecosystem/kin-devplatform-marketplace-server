@@ -170,14 +170,14 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 			sender_address = app.walletAddresses.sender;
 			recipient_address = user.walletAddress;
 		} else if (payload.sub === "spend") {
-			await addWatcherEndpoint([app.walletAddresses.recipient]);  // XXX how can we avoid this and only do this for the first ever time we see this address?
+			// spend or pay_to_user
 			title = (payload as ExternalSpendOrderJWT).sender.title;
 			description = (payload as ExternalSpendOrderJWT).sender.description;
 			sender_address = user.walletAddress;
 			recipient_address = app.walletAddresses.recipient;
 		} else {
 			// p2p
-			requestPayload = (payload as ExternalPayToUserOrderJwt)
+			requestPayload = (payload as ExternalPayToUserOrderJwt);
 			title = requestPayload.sender.title;
 			description = requestPayload.sender.description;
 			sender_address = user.walletAddress;
@@ -191,7 +191,6 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 			recipient_title = requestPayload.recipient.title;
 			recipient_description = requestPayload.recipient.description;
 			recipient_address = recipient_user.walletAddress;
-			await addWatcherEndpoint([recipient_address]);
 		}
 
 		order = db.ExternalOrder.new({
@@ -214,6 +213,12 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 				recipient_address
 			}
 		});
+
+		if (order.type === "pay_to_user") {
+			await addWatcherEndpoint([recipient_address], order.id);
+		} else if (order.type === "spend") {
+			await addWatcherEndpoint([app.walletAddresses.recipient], order.id);
+		}
 
 		await order.save();
 		metrics.createOrder("external", payload.sub, payload.offer.id);
