@@ -38,9 +38,9 @@ function updateQueryWithFilter(query: SelectQueryBuilder<any>, name: string, val
 	}
 
 	if (value.startsWith("!")) {
-		query.andWhere(`${ name } != :value`, { value: value.substring(1) });
+		query.andWhere(`${name} != :value`, { value: value.substring(1) });
 	} else {
-		query.andWhere(`${ name } = :value`, { value });
+		query.andWhere(`${name} = :value`, { value });
 	}
 }
 
@@ -142,7 +142,8 @@ export class Order extends CreationDateModel {
 
 	public static getAll<T extends Order>(this: OrderStatic<T> | Function, filters: GetOrderFilters, limit?: number): Promise<T[]> {
 		const query = (this as OrderStatic<T>).createQueryBuilder()
-			.where("user_id = :userId", { userId: filters.userId })
+			.where("user_id = :userId", { userId: filters.userId }).
+			orWhere("recipient_id = :userId", { userId: filters.userId })
 			.orderBy("current_status_date", "DESC")
 			.addOrderBy("id", "DESC");
 
@@ -188,11 +189,17 @@ export class Order extends CreationDateModel {
 	@Column({ name: "user_id" })
 	public userId!: string;
 
+	@Column({ name: "recipient_id", nullable: true })
+	public recipientId?: string;
+
 	@Column({ name: "offer_id" })
 	public offerId!: string;
 
 	@Column("simple-json")
 	public meta!: OrderMeta;
+
+	@Column("simple-json", { name: "recipient_meta", nullable: true })
+	public recipientMeta?: OrderMeta;
 
 	@Column("simple-json", { nullable: true })
 	public error?: ApiError | null;

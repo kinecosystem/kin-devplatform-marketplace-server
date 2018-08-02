@@ -105,17 +105,17 @@ function isJWT(obj: any): obj is { jwt: string } {
 
 class SampleAppClient {
 	public async getRegisterJWT(userId: string): Promise<string> {
-		const res = await axios.default.get<JWTPayload>(JWT_SERVICE_BASE + `/register/token?user_id=${ userId }`);
+		const res = await axios.default.get<JWTPayload>(JWT_SERVICE_BASE + `/register/token?user_id=${userId}`);
 		return res.data.jwt;
 	}
 
 	public async getSpendJWT(offerId: string): Promise<string> {
-		const res = await axios.default.get<JWTPayload>(JWT_SERVICE_BASE + `/spend/token?offer_id=${ offerId }`);
+		const res = await axios.default.get<JWTPayload>(JWT_SERVICE_BASE + `/spend/token?offer_id=${offerId}`);
 		return res.data.jwt;
 	}
 
 	public async getEarnJWT(userId: string, offerId: string): Promise<string> {
-		const res = await axios.default.get<JWTPayload>(JWT_SERVICE_BASE + `/earn/token?user_id=${ userId }&offer_id=${ offerId }`);
+		const res = await axios.default.get<JWTPayload>(JWT_SERVICE_BASE + `/earn/token?user_id=${userId}&offer_id=${offerId}`);
 		return res.data.jwt;
 	}
 
@@ -125,7 +125,7 @@ class SampleAppClient {
 	}
 
 	public async isValidSignature(jwt: string): Promise<boolean> {
-		const res = await axios.default.get<{ is_valid: boolean }>(JWT_SERVICE_BASE + `/validate?jwt=${ jwt }`);
+		const res = await axios.default.get<{ is_valid: boolean }>(JWT_SERVICE_BASE + `/validate?jwt=${jwt}`);
 		return res.data.is_valid;
 	}
 }
@@ -628,7 +628,7 @@ async function nativeSpendFlow() {
 
 	const selectedOffer = (await appClient.getOffers())[0] as ExternalOfferPayload;
 	const offerJwt = await appClient.getSpendJWT(selectedOffer.id);
-	console.log(`requesting order for offer: ${ selectedOffer.id }: ${ offerJwt }`);
+	console.log(`requesting order for offer: ${selectedOffer.id}: ${offerJwt}`);
 
 	const openOrder = await client.createExternalOrder(offerJwt);
 	console.log(`got open order`, openOrder);
@@ -719,7 +719,7 @@ async function nativeEarnFlow() {
 
 	const selectedOffer = (await appClient.getOffers()).filter((item: any) => item.type === "earn")[0] as ExternalOfferPayload;
 	const offerJwt = await appClient.getEarnJWT(userId, selectedOffer.id);
-	console.log(`requesting order for offer: ${ selectedOffer.id }: ${ offerJwt }`);
+	console.log(`requesting order for offer: ${selectedOffer.id}: ${offerJwt}`);
 
 	const openOrder = await client.createExternalOrder(offerJwt);
 	console.log(`got open order`, openOrder);

@@ -15,6 +15,7 @@ const CODES = {
 		InvalidToken: 2,
 		InvalidApiKey: 3,
 		TOSMissingOrOldToken: 4,
+		RecipientMissingTOS: 5,
 	},
 	NotFound: {
 		App: 1,
@@ -22,6 +23,7 @@ const CODES = {
 		Order: 3,
 		PublicKey: 4,
 		OfferCapReached: 5,
+		User: 6
 	},
 	RequestTimeout: {
 		OpenOrderExpired: 1,
@@ -93,15 +95,19 @@ export function MissingToken() {
 }
 
 export function InvalidToken(token: string) {
-	return UnauthorizedError(CODES.Unauthorized.InvalidToken, `Invalid token: ${ token }`);
+	return UnauthorizedError(CODES.Unauthorized.InvalidToken, `Invalid token: ${token}`);
 }
 
 export function InvalidApiKey(apiKey: string) {
-	return UnauthorizedError(CODES.Unauthorized.InvalidApiKey, `invalid api key: ${ apiKey }`);
+	return UnauthorizedError(CODES.Unauthorized.InvalidApiKey, `invalid api key: ${apiKey}`);
 }
 
 export function TOSMissingOrOldToken() {
 	return UnauthorizedError(CODES.Unauthorized.TOSMissingOrOldToken, "user did not approve TOS or using a pre activated token");
+}
+
+export function RecipientMissingTOS() {
+	return UnauthorizedError(CODES.Unauthorized.RecipientMissingTOS, "recipient did not approve TOS");
 }
 
 function NotFoundError(index: number, message: string) {
@@ -109,19 +115,23 @@ function NotFoundError(index: number, message: string) {
 }
 
 export function NoSuchApp(id: string) {
-	return NotFoundError(CODES.NotFound.App, `No such app: ${ id }`);
+	return NotFoundError(CODES.NotFound.App, `No such app: ${id}`);
 }
 
 export function NoSuchOffer(id: string) {
-	return NotFoundError(CODES.NotFound.Offer, `No such offer: ${ id }`);
+	return NotFoundError(CODES.NotFound.Offer, `No such offer: ${id}`);
 }
 
 export function NoSuchOrder(id: string) {
-	return NotFoundError(CODES.NotFound.Order, `No such order: ${ id }`);
+	return NotFoundError(CODES.NotFound.Order, `No such order: ${id}`);
 }
 
-export function NoSuchPublicKey(appId: string, keyid: string) {
-	return NotFoundError(CODES.NotFound.App, `Key "${ keyid }" not found for iss "${ appId }"`);
+export function NoSuchPublicKey(appId: string, userId: string) {
+	return NotFoundError(CODES.NotFound.App, `Key "${userId}" not found for iss "${appId}"`);
+}
+
+export function NoSuchUser(appId: string, keyid: string) {
+	return NotFoundError(CODES.NotFound.User, `User "${keyid}" not found for iss "${appId}"`);
 }
 
 function RequestTimeoutError(index: number, message: string) {
@@ -129,7 +139,7 @@ function RequestTimeoutError(index: number, message: string) {
 }
 
 export function OpenOrderExpired(orderId: string) {
-	return RequestTimeoutError(CODES.RequestTimeout.OpenOrderExpired, `open order ${ orderId } has expired`);
+	return RequestTimeoutError(CODES.RequestTimeout.OpenOrderExpired, `open order ${orderId} has expired`);
 }
 
 function ConflictError(index: number, message: string) {
@@ -143,7 +153,7 @@ export function ExternalOrderAlreadyCompleted(orderId: string) {
 }
 
 export function ExternalEarnOfferByDifferentUser(loggedInUser: string, payToUser: string) {
-	const message = `Pay to user (${ payToUser }) is not the logged in user (${ loggedInUser })`;
+	const message = `Pay to user (${payToUser}) is not the logged in user (${loggedInUser})`;
 	return ConflictError(CODES.Conflict.ExternalEarnOfferByDifferentUser, message);
 }
 
@@ -153,7 +163,7 @@ export function CompletedOrderCantTransitionToFailed() {
 }
 
 export function OfferCapReached(id: string) {
-	return NotFoundError(CODES.NotFound.OfferCapReached, `Cap reached for offer: ${ id }`);
+	return NotFoundError(CODES.NotFound.OfferCapReached, `Cap reached for offer: ${id}`);
 }
 
 function InternalServerError(index: number, message: string) {
@@ -173,11 +183,11 @@ function BadRequestError(index: number, message: string) {
 }
 
 export function UnknownSignInType(type: string) {
-	return BadRequestError(CODES.BadRequest.UnknownSignInType, `Unknown sign-in type: ${ type }`);
+	return BadRequestError(CODES.BadRequest.UnknownSignInType, `Unknown sign-in type: ${type}`);
 }
 
 export function WrongJwtAlgorithm(type: string) {
-	return BadRequestError(CODES.BadRequest.UnknownSignInType, `algorithm type ("${ type }") not supported`);
+	return BadRequestError(CODES.BadRequest.UnknownSignInType, `algorithm type ("${type}") not supported`);
 }
 
 export function InvalidJwtSignature() {

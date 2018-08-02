@@ -21,14 +21,16 @@ import {
 	OpenedOrdersOnly,
 	OpenedOrdersUnreturnable,
 	OpenOrderExpired,
-	TransactionTimeout
+	TransactionTimeout,
+	RecipientMissingTOS,
+	NoSuchUser
 } from "../../errors";
 
 import { Paging } from "./index";
 import * as payment from "./payment";
 import { addWatcherEndpoint } from "./payment";
 import * as offerContents from "./offer_contents";
-import { ExternalEarnOrderJWT, ExternalSpendOrderJWT } from "./native_offers";
+import { ExternalEarnOrderJWT, ExternalSpendOrderJWT, ExternalPayToUserOrderJwt } from "./native_offers";
 import {
 	create as createEarnTransactionBroadcastToBlockchainSubmitted
 } from "../../analytics/events/earn_transaction_broadcast_to_blockchain_submitted";
@@ -158,23 +160,43 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 		let description: string;
 		let sender_address: string;
 		let recipient_address: string;
+		let requestPayload: ExternalPayToUserOrderJwt;
+		let recipient_user: User | undefined;
+		let recipient_title: string | undefined;
+		let recipient_description: string | undefined;
 		if (payload.sub === "earn") {
 			title = (payload as ExternalEarnOrderJWT).recipient.title;
 			description = (payload as ExternalEarnOrderJWT).recipient.description;
 			sender_address = app.walletAddresses.sender;
 			recipient_address = user.walletAddress;
-		} else {
-			// spend or pay_to_user
+		} else if (payload.sub === "spend") {
 			await addWatcherEndpoint([app.walletAddresses.recipient]);  // XXX how can we avoid this and only do this for the first ever time we see this address?
 			title = (payload as ExternalSpendOrderJWT).sender.title;
 			description = (payload as ExternalSpendOrderJWT).sender.description;
 			sender_address = user.walletAddress;
-			// TODO in case of pay_to_user, needs another lookup for the recipient_user_wallet
 			recipient_address = app.walletAddresses.recipient;
+		} else {
+			// p2p
+			requestPayload = (payload as ExternalPayToUserOrderJwt)
+			title = requestPayload.sender.title;
+			description = requestPayload.sender.description;
+			sender_address = user.walletAddress;
+			recipient_user = await User.findOne({ appId: app.id, appUserId: requestPayload.recipient.user_id });
+			if (!recipient_user) {
+				throw NoSuchUser(app.id, requestPayload.recipient.user_id);
+			}
+			if (!recipient_user.activated) {
+				throw RecipientMissingTOS();
+			}
+			recipient_title = requestPayload.recipient.title;
+			recipient_description = requestPayload.recipient.description;
+			recipient_address = recipient_user.walletAddress;
+			await addWatcherEndpoint([recipient_address]);
 		}
 
 		order = db.ExternalOrder.new({
 			userId: user.id,
+			recipientId: recipient_user ? recipient_user.id : undefined,
 			offerId: payload.offer.id,
 			amount: payload.offer.amount,
 			type: payload.sub,
@@ -183,6 +205,10 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 				title,
 				description
 			},
+			recipientMeta: recipient_title ? {
+				title: recipient_title,
+				description: recipient_description
+			} : undefined,
 			blockchainData: {
 				sender_address,
 				recipient_address
@@ -289,7 +315,7 @@ export async function getOrderHistory(
 	return {
 		orders: orders.map(order => {
 			checkIfTimedOut(order); // no need to wait for the promise
-			return orderDbToApi(order);
+			return orderDbToApi(order, userId);
 		}),
 		paging: {
 			cursors: {
@@ -318,11 +344,14 @@ function openOrderDbToApi(order: db.Order): OpenOrder {
 	};
 }
 
-function orderDbToApi(order: db.Order): Order {
+function orderDbToApi(order: db.Order, userId?: string): Order {
 	if (order.status === "opened") {
 		throw OpenedOrdersUnreturnable();
 	}
 
+	if (userId && order.recipientId === userId && order.recipientMeta) {
+		order.meta = order.recipientMeta;
+	}
 	const apiOrder = Object.assign(
 		pick(order, "id", "origin", "status", "amount"), {
 			result: order.value,
@@ -356,5 +385,5 @@ function checkIfTimedOut(order: db.Order): Promise<void> {
 }
 
 function getLockResource(type: "create" | "get", ...ids: string[]) {
-	return `locks:orders:${ type }:${ ids.join(":") }`;
+	return `locks:orders:${type}:${ids.join(":")}`;
 }

@@ -5,7 +5,7 @@ import * as db from "../models/orders";
 import { User } from "../models/users";
 import { pick, removeDuplicates } from "../utils";
 import { Asset, Offer, OrderValue } from "../models/offers";
-import { setWatcherEndpoint, Watcher } from "../public/services/payment";
+import { setWatcherEndpoint, removeWatcherEndpoint, Watcher } from "../public/services/payment";
 import { create as createSpendOrderPaymentConfirmed } from "../analytics/events/spend_order_payment_confirmed";
 import { create as createStellarAccountCreationFailed } from "../analytics/events/stellar_account_creation_failed";
 import { create as createStellarAccountCreationSucceeded } from "../analytics/events/stellar_account_creation_succeeded";
@@ -87,7 +87,7 @@ async function getPaymentJWT(order: db.Order, appId: string): Promise<OrderValue
 export async function paymentComplete(payment: CompletedPayment, logger: LoggerInstance) {
 	const order = await db.Order.findOneById(payment.id);
 	if (!order) {
-		logger.error(`received payment for unknown order id ${ payment.id }`);
+		logger.error(`received payment for unknown order id ${payment.id}`);
 		return;
 	}
 
@@ -99,14 +99,14 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 	}
 
 	if (order.status === "completed") {
-		logger.warn(`received payment callback for already completed order ${ payment.id }`);
+		logger.warn(`received payment callback for already completed order ${payment.id}`);
 		return;
 	}
 
 	// validate payment
 	if (order.amount !== payment.amount) {
-		logger.error(`payment <${ payment.id }, ${ payment.transaction_id }>` +
-			`amount mismatch ${ order.amount } !== ${ payment.amount }`);
+		logger.error(`payment <${payment.id}, ${payment.transaction_id}>` +
+			`amount mismatch ${order.amount} !== ${payment.amount}`);
 		// 2. don't complete the transaction? complete only if the server got more than expected?
 
 		await setFailedOrder(order, WrongAmount());
@@ -114,16 +114,16 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 	}
 
 	if (order.blockchainData!.recipient_address !== payment.recipient_address) {
-		logger.error(`payment <${ payment.id }, ${ payment.transaction_id }>` +
-			`addresses recipient mismatch ${ order.blockchainData!.recipient_address } !== ${ payment.recipient_address }`);
+		logger.error(`payment <${payment.id}, ${payment.transaction_id}>` +
+			`addresses recipient mismatch ${order.blockchainData!.recipient_address} !== ${payment.recipient_address}`);
 
 		await setFailedOrder(order, WrongRecipient());
 		return;
 	}
 
 	if (order.blockchainData!.sender_address !== payment.sender_address) {
-		logger.error(`payment <${ payment.id }, ${ payment.transaction_id }>` +
-			`addresses sender mismatch ${ order.blockchainData!.sender_address } !== ${ payment.sender_address }`);
+		logger.error(`payment <${payment.id}, ${payment.transaction_id}>` +
+			`addresses sender mismatch ${order.blockchainData!.sender_address} !== ${payment.sender_address}`);
 
 		await setFailedOrder(order, WrongSender());
 		return;
@@ -131,7 +131,7 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 
 	// XXX hack - missing app_id on blockchain
 	if (!payment.app_id) {
-		logger.error(`payment is missing the app_id <${ payment.id }, ${ payment.transaction_id }> - setting the one from the DB`);
+		logger.error(`payment is missing the app_id <${payment.id}, ${payment.transaction_id}> - setting the one from the DB`);
 		const user: User | undefined = await User.findOneById(order.userId);
 		if (!user) {
 			logger.error(`failed to fix missing app_id on payment - cant find user ${order.userId}`);
@@ -157,8 +157,6 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 			}
 		}
 	} else if (order.isExternalOrder()) {
-		// XXX for p2p don't put the JWT in the recipient order's value
-		// XXX for p2p create a completed order for the recipient too
 		order.value = await getPaymentJWT(order, payment.app_id);
 	}
 
@@ -169,16 +167,21 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 	}
 
 	order.setStatus("completed");
+	if (order.type !== "earn" && order.isExternalOrder()) {
+		// If a completed order was a native spend or p2p, remove the watcher for that address
+		// If there are two or more orders for that address, the payment service will make sure not to completly remove it
+		await removeWatcherEndpoint(payment.recipient_address);
+	}
 	await order.save();
 
 	metrics.completeOrder(order.type, order.offerId);
-	logger.info(`completed order with payment <${ payment.id }, ${ payment.transaction_id }>`);
+	logger.info(`completed order with payment <${payment.id}, ${payment.transaction_id}>`);
 }
 
 export async function paymentFailed(payment: FailedPayment, logger: LoggerInstance) {
 	const order = await db.Order.findOneById(payment.id);
 	if (!order) {
-		logger.error(`received payment for unknown order id ${ payment.id }`);
+		logger.error(`received payment for unknown order id ${payment.id}`);
 		return;
 	}
 

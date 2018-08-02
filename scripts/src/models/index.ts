@@ -101,11 +101,11 @@ export async function close(): Promise<void> {
 export type ModelFilters<T extends Model> = Partial<{ [K in keyof T]: T[K] }>;
 
 function createOnConnectedString(options: ConnectionOptions): string {
-	let msg = `connected to ${ options.type } server`;
+	let msg = `connected to ${options.type} server`;
 
 	switch (options.type) {
 		case "sqlite":
-			msg += `, db file: '${ options.database }'`;
+			msg += `, db file: '${options.database}'`;
 	}
 
 	return msg;
