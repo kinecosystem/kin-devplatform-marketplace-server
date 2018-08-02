@@ -22,7 +22,8 @@ import {
 	OpenedOrdersUnreturnable,
 	OpenOrderExpired,
 	TransactionTimeout,
-	NoSuchPublicKey // change to no user later
+	RecipientMissingTOS,
+	NoSuchUser
 } from "../../errors";
 
 import { Paging } from "./index";
@@ -181,7 +182,10 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 			sender_address = user.walletAddress;
 			recipient_user = await User.findOne({ appId: app.id, appUserId: (payload as ExternalPayToUserOrderJwt).recipient.user_id });
 			if (!recipient_user) {
-				throw NoSuchPublicKey;
+				throw NoSuchUser(app.id, (payload as ExternalPayToUserOrderJwt).recipient.user_id);
+			}
+			if (!recipient_user.activated) {
+				throw RecipientMissingTOS();
 			}
 			recipient_title = (payload as ExternalPayToUserOrderJwt).recipient.title;
 			recipient_description = (payload as ExternalPayToUserOrderJwt).recipient.description;

@@ -9,7 +9,7 @@ import { getConfig } from "../config";
 
 const config = getConfig();
 const webhook = `${config.internal_service}/v1/internal/webhook`;
-const client = axios.create( { timeout: 1000 });
+const client = axios.create({ timeout: 1000 });
 axiosRetry(client, { retries: 3 }); // retries on 5xx errors
 
 interface PaymentRequest {
@@ -47,6 +47,11 @@ export interface Watcher {
 	wallet_addresses: string[];
 	callback: string;
 	service_id?: string;
+}
+
+export interface WatcherRemovalPayload {
+	// TODO: Once payment service change is finished, add a speicifc order id to be removed
+	wallet_address: string;
 }
 
 const SERVICE_ID = "marketplace";
@@ -99,6 +104,12 @@ export async function setWatcherEndpoint(addresses: string[]): Promise<Watcher> 
 export async function addWatcherEndpoint(addresses: string[]): Promise<Watcher> {
 	const payload: Watcher = { wallet_addresses: addresses, callback: webhook };
 	const res = await client.post(`${config.payment_service}/watchers/${SERVICE_ID}`, payload);
+	return res.data;
+}
+
+export async function removeWatcherEndpoint(addresse: string): Promise<Watcher> {
+	const payload: WatcherRemovalPayload = { wallet_address: addresse };
+	const res = await client.delete(`${config.payment_service}/watchers/${SERVICE_ID}`, { data: payload });
 	return res.data;
 }
 
