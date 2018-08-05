@@ -199,5 +199,5 @@ export async function initPaymentCallbacks(logger: LoggerInstance): Promise<Watc
 	const addresses = removeDuplicates(offers.map(offer => offer.blockchainData.recipient_address!));
 
 	logger.info("setting payment watching addresses", { addresses });
-	return await setWatcherEndpoint(addresses);
+	return await setWatcherEndpoint(addresses, "None");
 }

@@ -94,9 +94,9 @@ export async function getPaymentData(orderId: string, logger: LoggerInstance): P
 	return res.data;
 }
 
-export async function setWatcherEndpoint(addresses: string[]): Promise<Watcher> {
+export async function setWatcherEndpoint(addresses: string[], orderId: string): Promise<Watcher> {
 	// Order Id to "None" so we will never stop watching this address
-	const payload: Watcher = { wallet_addresses: addresses, order_id: "None", callback: webhook };
+	const payload: Watcher = { wallet_addresses: addresses, order_id: orderId, callback: webhook };
 	const res = await client.put(`${config.payment_service}/watchers/${SERVICE_ID}`, payload);
 	return res.data;
 }
