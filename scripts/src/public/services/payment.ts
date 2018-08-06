@@ -45,13 +45,14 @@ export interface Wallet {
 
 export interface Watcher {
 	wallet_addresses: string[];
+	order_id: string;
 	callback: string;
 	service_id?: string;
 }
 
 export interface WatcherRemovalPayload {
-	// TODO: Once payment service change is finished, add a speicifc order id to be removed
 	wallet_address: string;
+	order_id: string;
 }
 
 const SERVICE_ID = "marketplace";
@@ -93,22 +94,14 @@ export async function getPaymentData(orderId: string, logger: LoggerInstance): P
 	return res.data;
 }
 
-export async function setWatcherEndpoint(addresses: string[]): Promise<Watcher> {
-	// What about native spend addresses?
-	// XXX should be called from the internal server api upon creation
-	const payload: Watcher = { wallet_addresses: addresses, callback: webhook };
-	const res = await client.put(`${config.payment_service}/watchers/${SERVICE_ID}`, payload);
-	return res.data;
-}
-
-export async function addWatcherEndpoint(addresses: string[]): Promise<Watcher> {
-	const payload: Watcher = { wallet_addresses: addresses, callback: webhook };
+export async function addWatcherEndpoint(addresses: string[], orderId: string): Promise<Watcher> {
+	const payload: Watcher = { wallet_addresses: addresses, order_id: orderId, callback: webhook };
 	const res = await client.post(`${config.payment_service}/watchers/${SERVICE_ID}`, payload);
 	return res.data;
 }
 
-export async function removeWatcherEndpoint(addresse: string): Promise<Watcher> {
-	const payload: WatcherRemovalPayload = { wallet_address: addresse };
+export async function removeWatcherEndpoint(addresse: string, orderId: string): Promise<Watcher> {
+	const payload: WatcherRemovalPayload = { wallet_address: addresse, order_id: orderId };
 	const res = await client.delete(`${config.payment_service}/watchers/${SERVICE_ID}`, { data: payload });
 	return res.data;
 }

@@ -5,7 +5,7 @@ import * as db from "../models/orders";
 import { User } from "../models/users";
 import { pick, removeDuplicates } from "../utils";
 import { Asset, Offer, OrderValue } from "../models/offers";
-import { setWatcherEndpoint, removeWatcherEndpoint, Watcher } from "../public/services/payment";
+import { addWatcherEndpoint, removeWatcherEndpoint, Watcher } from "../public/services/payment";
 import { create as createSpendOrderPaymentConfirmed } from "../analytics/events/spend_order_payment_confirmed";
 import { create as createStellarAccountCreationFailed } from "../analytics/events/stellar_account_creation_failed";
 import { create as createStellarAccountCreationSucceeded } from "../analytics/events/stellar_account_creation_succeeded";
@@ -170,7 +170,7 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 	if (order.type !== "earn" && order.isExternalOrder()) {
 		// If a completed order was a native spend or p2p, remove the watcher for that address
 		// If there are two or more orders for that address, the payment service will make sure not to completly remove it
-		await removeWatcherEndpoint(payment.recipient_address);
+		await removeWatcherEndpoint(payment.recipient_address, order.id);
 	}
 	await order.save();
 
@@ -199,5 +199,5 @@ export async function initPaymentCallbacks(logger: LoggerInstance): Promise<Watc
 	const addresses = removeDuplicates(offers.map(offer => offer.blockchainData.recipient_address!));
 
 	logger.info("setting payment watching addresses", { addresses });
-	return await setWatcherEndpoint(addresses);
+	return await addWatcherEndpoint(addresses, "None");
 }
