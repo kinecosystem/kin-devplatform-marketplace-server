@@ -2,52 +2,48 @@ version: "3"
 
 services:
 
-  marketplace-server:
-    image: kinecosystem/marketplace-server:1bb2838
+  marketplace-public:
+    image: kinecosystem/devplatform-marketplace-server:latest
     ports:
-      - 3000
-    links:
-      - redis
-      - payment-service
-      - postgres
-      - bi-service
+      - 80:3000
     environment:
       &app_env_vars
-      APP_DEBUG: 'True'
+      APP_DEBUG: 'False'
       APP_PORT: 3000
       APP_HOST: '0.0.0.0'
       APP_NAME: 'marketplace-server'
-      APP_REDIS: redis://redis:6379/0
-      APP_PAYMENT_SERVICE: http://payment-service:3000
+      APP_REDIS: redis://URL:6379/0
+      STATSD_HOST: http://datadog
+      STATSD_PORT: 8125
+      APP_PAYMENT_SERVICE: 
       APP_INTERNAL_SERVICE: http://marketplace-internal:3000
-      APP_BI_SERVICE: http://bi-service
+      APP_BI_SERVICE: 
       APP_DB_TYPE: postgres
       APP_DB_USERNAME: user
       APP_DB_PASSWORD: pass
       APP_DB_PORT: 5432
-      APP_DB_HOST: postgres
+      APP_DB_HOST: http://URL
       APP_DB_DATABASE: ecosystem
+    command: ./tests/wait-for marketplace-internal:3000 -- npm run start
+    volumes:
+      - .:/opt/marketplace-server
+
 
   marketplace-internal:
-    image: kinecosystem/marketplace-server:1bb2838
+    image: kinecosystem/devplatform-marketplace-server:latest
     command: npm run start-internal
     ports:
       - 3000
-    links:
-      - redis
-      - payment-service
-      - postgres
-      - marketplace-server # so I can wait for it
     environment:
       <<: *app_env_vars
       APP_NAME: 'marketplace-internal'
-      APP_JWT_KEYS_DIR: /opt/app/jwt
+      APP_JWT_KEYS_DIR: /opt/marketplace-server/jwt
 
-  postgres:
-    image: postgres:10.4
-    ports:
-      - 5432
+  datadog:
+    image: dd-agent
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: ecosystem
+     - API_KEY=
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock
+     - /proc/mounts:/host/proc/mounts:ro
+     - /sys/fs/cgroup:/host/sys/fs/cgroup:ro

@@ -30,7 +30,7 @@ db:
 
 # docker targets
 revision := $(shell git rev-parse --short HEAD)
-image := "kinecosystem/marketplace-server"
+image := "kinecosystem/devplatform-marketplace-server"
 
 build-image:
 	docker build -t ${image} -f Dockerfile \
@@ -46,7 +46,7 @@ pull:
 	docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml pull
 
 up:
-	. ./secrets/.secrets && docker-compose -f docker-compose.yaml -f docker-compose.deps.yaml up -d
+	docker-compose up -d
 
 up-dev: db-docker
 	. ./secrets/.secrets && docker-compose -f docker-compose.dev.yaml -f docker-compose.yaml -f docker-compose.deps.yaml up -d

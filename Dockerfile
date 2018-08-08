@@ -1,6 +1,6 @@
 FROM node:9-alpine
 
-WORKDIR /opt/app
+WORKDIR /opt/marketplace-server
 
 # copy requirements
 COPY package*.json ./
