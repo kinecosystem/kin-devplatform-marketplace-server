@@ -38,6 +38,8 @@ export function init(filePath: string) {
 	(config.db as any).port = parseInt(process.env.APP_DB_PORT || "", 10) || (config.db as any).port;
 	(config.db as any).host = process.env.APP_DB_HOST || (config.db as any).host;
 	(config.db as any).database = process.env.APP_DB_DATABASE || (config.db as any).database;
+	config.statsd.host = process.env.STATSD_HOST || config.statsd.host;
+	config.statsd.port = parseInt(process.env.APP_PORT || "", 10) || config.statsd.port;
 	config.payment_service = process.env.APP_PAYMENT_SERVICE || config.payment_service;
 	config.internal_service = process.env.APP_INTERNAL_SERVICE || config.internal_service;
 	config.bi_service = process.env.APP_BI_SERVICE || config.bi_service;
