@@ -103,11 +103,11 @@ export function InvalidApiKey(apiKey: string) {
 }
 
 export function TOSMissingOrOldToken() {
-	return UnauthorizedError(CODES.Unauthorized.TOSMissingOrOldToken, "user did not approve TOS or using a pre activated token");
+	return UnauthorizedError(CODES.Unauthorized.TOSMissingOrOldToken, "user is not activated or using a pre activated token");
 }
 
 export function RecipientMissingTOS() {
-	return UnauthorizedError(CODES.Unauthorized.RecipientMissingTOS, "recipient did not approve TOS");
+	return UnauthorizedError(CODES.Unauthorized.RecipientMissingTOS, "recipient is not activated");
 }
 
 function NotFoundError(index: number, message: string) {
