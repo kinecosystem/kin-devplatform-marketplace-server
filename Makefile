@@ -28,6 +28,9 @@ db:
 	rm -f database.sqlite
 	npm run create-db -- data/apps data/offers
 
+create-db:
+	npm run create-db -- data/apps data/offers
+
 # docker targets
 revision := $(shell git rev-parse --short HEAD)
 image := "kinecosystem/marketplace-server"
