@@ -6,7 +6,7 @@ import { generateId, IdPrefix } from "../utils";
 
 import { CreationDateModel, initializer as Initializer, register as Register } from "./index";
 import { BlockchainData, OfferType, OrderValue } from "./offers";
-import { ApiError } from "../errors";
+import { ApiError, TransactionTimeout } from "../errors";
 
 export interface OrderMeta {
 	title: string;
@@ -117,6 +117,20 @@ export class Order extends CreationDateModel {
 			.orderBy("expiration_date", "DESC"); // if there are a few, get the one with the most time left
 
 		return query.getOne() as Promise<T | undefined>;
+	}
+
+	public static async updateUncompletedOrders<T extends Order>(): Promise<void> {
+		const now = moment().format("YYYY-MM-DD HH:mm:ss.SSS");
+		const errorMessage = TransactionTimeout().toString();
+		await Order.createQueryBuilder()
+			.update("Orders")
+			.set({ status: "failed", error: JSON.stringify(errorMessage) })
+			.where(new Brackets(qb => {
+				qb.where("status = :opened", { opened: "opened" })
+					.orWhere("status = :pending", { pending: "pending" });
+			}))
+			.andWhere("expiration_date < :date", { date: now })
+			.execute();
 	}
 
 	/**
