@@ -119,12 +119,12 @@ export class Order extends CreationDateModel {
 		return query.getOne() as Promise<T | undefined>;
 	}
 
-	public static async updateUncompletedOrders<T extends Order>(): Promise<void> {
+	public static async updateUncompletedOrders(): Promise<void> {
 		const now = moment().format("YYYY-MM-DD HH:mm:ss.SSS");
 		const errorMessage = TransactionTimeout().toString();
 		await Order.createQueryBuilder()
 			.update("Orders")
-			.set({ status: "failed", error: JSON.stringify(errorMessage) })
+			.set({ status: "failed", error: errorMessage })
 			.where(new Brackets(qb => {
 				qb.where("status = :opened", { opened: "opened" })
 					.orWhere("status = :pending", { pending: "pending" });
