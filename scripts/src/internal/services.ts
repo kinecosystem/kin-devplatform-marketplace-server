@@ -189,15 +189,3 @@ export async function paymentFailed(payment: FailedPayment, logger: LoggerInstan
 	await setFailedOrder(order, BlockchainError(payment.reason));
 	logger.info(`failed order with payment <${payment.id}>`);
 }
-
-/**
- * register to get callbacks for incoming payments for all the active offers
- */
-export async function initPaymentCallbacks(logger: LoggerInstance): Promise<Watcher> {
-	const offers = await Offer.find<Offer>({ type: "spend" }); // get all active spend offers
-	// create a list of unique addresses
-	const addresses = removeDuplicates(offers.map(offer => offer.blockchainData.recipient_address!));
-
-	logger.info("setting payment watching addresses", { addresses });
-	return await addWatcherEndpoint(addresses, "None");
-}

@@ -8,7 +8,6 @@ const config = getConfig();
 const logger = initLogger(...config.loggers!);
 
 import { createRoutes } from "./routes";
-import { initPaymentCallbacks } from "./services";
 import { init as initModels } from "../models/index";
 import { init as initCustomMiddleware, notFoundHandler, generalErrorHandler } from "./middleware";
 import { init as initRemoteConfig } from "../public/routes/config";
@@ -40,6 +39,4 @@ export async function init() {
 	// initializing db and models
 	const msg = await initModels();
 	logger.info("init db", { msg });
-	const res = await initPaymentCallbacks(logger);
-	logger.info("init payment result", { res });
 }
