@@ -99,6 +99,7 @@ async function createOrder(offer: offerDb.Offer, user: User) {
 		return undefined;
 	}
 
+	const { senderAddress, recipientAddress } = await extractMarketplaceOrderWalletAddresses(user, offer);
 	const order = db.MarketplaceOrder.new({
 		userId: user.id,
 		type: offer.type,
@@ -109,15 +110,31 @@ async function createOrder(offer: offerDb.Offer, user: User) {
 		// replaceTemplateVars(offer, offer.meta.order_meta.content!)
 		meta: offer.meta.order_meta,
 		blockchainData: {
-			sender_address: offer.type === "spend" ? user.walletAddress : offer.blockchainData.sender_address,
-			recipient_address: offer.type === "spend" ? offer.blockchainData.recipient_address : user.walletAddress
+			sender_address: senderAddress,
+			recipient_address: recipientAddress
 		}
 	});
+
+	if (order.type === "spend" && recipientAddress) {
+		await addWatcherEndpoint([recipientAddress], order.id);
+	}
 
 	await order.save();
 	metrics.createOrder("marketplace", offer.type, offer.id);
 
 	return order;
+}
+
+async function extractMarketplaceOrderWalletAddresses(user: User, offer: offerDb.Offer) {
+	const app = await Application.findOneById(user.appId);
+	if (!app) {
+		throw NoSuchApp(user.appId);
+	}
+	const senderAddress = offer.type === "spend" ? user.walletAddress : app.walletAddresses.sender;
+	// spend marketplace offers shouldn't exists in production, and sending the funds to app wallet instead root wallet requires
+	// client change, for now keep it like before (client pay to root wallet address)
+	const recipientAddress = offer.type === "spend" ? offer.blockchainData.recipient_address : user.walletAddress;
+	return { senderAddress, recipientAddress };
 }
 
 export async function createMarketplaceOrder(offerId: string, user: User, logger: LoggerInstance): Promise<OpenOrder> {
@@ -284,7 +301,7 @@ export async function submitOrder(
 	logger.info("order changed to pending", { orderId });
 
 	if (order.type === "earn") {
-		await payment.payTo(walletAddress, appId, order.amount, order.id, order.isExternalOrder(), logger);
+		await payment.payTo(walletAddress, appId, order.amount, order.id, true, logger);
 		createEarnTransactionBroadcastToBlockchainSubmitted(order.userId, order.offerId, order.id).report();
 	}
 
