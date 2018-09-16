@@ -38,9 +38,9 @@ function updateQueryWithFilter(query: SelectQueryBuilder<any>, name: string, val
 	}
 
 	if (value.startsWith("!")) {
-		query.andWhere(`${name} != :value`, { value: value.substring(1) });
+		query.andWhere(`${name} != :${name}`, { [name]: value.substring(1) });
 	} else {
-		query.andWhere(`${name} = :value`, { value });
+		query.andWhere(`${name} = :${name}`, { [name]: value });
 	}
 }
 
@@ -156,8 +156,10 @@ export class Order extends CreationDateModel {
 
 	public static getAll<T extends Order>(this: OrderStatic<T> | Function, filters: GetOrderFilters, limit?: number): Promise<T[]> {
 		const query = (this as OrderStatic<T>).createQueryBuilder()
-			.where("user_id = :userId", { userId: filters.userId }).
-			orWhere("recipient_id = :userId", { userId: filters.userId })
+			.where(new Brackets(qb => {
+				qb.where("user_id = :userId", { userId: filters.userId })
+					.orWhere("recipient_id = :userId", { userId: filters.userId });
+			}))
 			.orderBy("current_status_date", "DESC")
 			.addOrderBy("id", "DESC");
 
