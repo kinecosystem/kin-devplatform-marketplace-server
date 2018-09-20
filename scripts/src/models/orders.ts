@@ -123,7 +123,7 @@ export class Order extends CreationDateModel {
 		const now = moment().format("YYYY-MM-DD HH:mm:ss.SSS");
 		const errorMessage = TransactionTimeout().toString();
 		await Order.createQueryBuilder()
-			.update("Orders")
+			.update("orders")
 			.set({ status: "failed", error: errorMessage })
 			.where(new Brackets(qb => {
 				qb.where("status = :opened", { opened: "opened" })
