@@ -86,7 +86,7 @@ export async function createWallet(walletAddress: string, appId: string, id: str
 	logger.info("wallet creation took " + (performance.now() - t) + "ms");
 }
 
-export async function getWalletData(walletAddress: string, logger: LoggerInstance): Promise<Wallet> {
+export async function getWalletData(walletAddress: string, logger?: LoggerInstance): Promise<Wallet> {
 	const res = await client.get(`${config.payment_service}/wallets/${walletAddress}`);
 	return res.data;
 }
