@@ -130,7 +130,7 @@ async function extractMarketplaceOrderWalletAddresses(user: User, offer: offerDb
 	if (!app) {
 		throw NoSuchApp(user.appId);
 	}
-	const senderAddress = offer.type === "spend" ? user.walletAddress : await selectSenderAddress(app.walletAddresses.sender,offer.amount);
+	const senderAddress = offer.type === "spend" ? user.walletAddress : await selectSenderAddress(app.walletAddresses.sender, offer.amount);
 	// spend marketplace offers shouldn't exists in production, and sending the funds to app wallet instead root wallet requires
 	// client change, for now keep it like before (client pay to root wallet address)
 	const recipientAddress = offer.type === "spend" ? offer.blockchainData.recipient_address : user.walletAddress;
@@ -410,12 +410,12 @@ function getLockResource(type: "create" | "get", ...ids: string[]) {
 	return `locks:orders:${type}:${ids.join(":")}`;
 }
 
-export async function selectSenderAddress(db_sender_address: string, amount: Number): Promise<string>{
-	const our_wallet = db_sender_address.split(',')[0];
-	const joined_wallet = db_sender_address.split(',')[1];
+export async function selectSenderAddress(db_sender_address: string, amount: Number): Promise<string> {
+	const our_wallet = db_sender_address.split(",")[0];
+	const joined_wallet = db_sender_address.split(",")[1];
 
 	const our_balance = (await payment.getWalletData(our_wallet)).kin_balance;
-	if (our_balance > amount){
+	if (our_balance > amount) {
 		return our_wallet;
 	}
 	return joined_wallet;
