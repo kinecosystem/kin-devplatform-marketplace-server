@@ -301,7 +301,7 @@ export async function submitOrder(
 	logger.info("order changed to pending", { orderId });
 
 	if (order.type === "earn") {
-		await payment.payTo(walletAddress, appId, order.amount, order.id, true, logger);
+		await payment.payTo(walletAddress, order.blockchainData.sender_address!, appId, order.amount, order.id, true, logger);
 		createEarnTransactionBroadcastToBlockchainSubmitted(order.userId, order.offerId, order.id).report();
 	}
 
