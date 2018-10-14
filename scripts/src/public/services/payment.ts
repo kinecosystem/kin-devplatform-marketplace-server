@@ -17,6 +17,7 @@ interface PaymentRequest {
 	app_id: string;
 	is_external: boolean;
 	recipient_address: string;
+	sender_address: string;
 	id: string;
 	callback: string;
 }
@@ -59,13 +60,14 @@ export interface WatcherRemovalPayload {
 const SERVICE_ID = "marketplace";
 
 export async function payTo(
-	walletAddress: string, appId: string, amount: number, orderId: string, isExternal: boolean, logger: LoggerInstance) {
+	walletAddress: string, sender_address: string, appId: string, amount: number, orderId: string, isExternal: boolean, logger: LoggerInstance) {
 	logger.info(`paying ${amount} to ${walletAddress} with orderId ${orderId}`);
 	const payload: PaymentRequest = {
 		amount,
 		app_id: appId,
 		is_external: isExternal,
 		recipient_address: walletAddress,
+		sender_address,
 		id: orderId,
 		callback: webhook,
 	};
@@ -86,7 +88,7 @@ export async function createWallet(walletAddress: string, appId: string, id: str
 	logger.info("wallet creation took " + (performance.now() - t) + "ms");
 }
 
-export async function getWalletData(walletAddress: string, logger: LoggerInstance): Promise<Wallet> {
+export async function getWalletData(walletAddress: string, logger?: LoggerInstance): Promise<Wallet> {
 	const res = await client.get(`${config.payment_service}/wallets/${walletAddress}`);
 	return res.data;
 }

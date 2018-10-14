@@ -130,7 +130,7 @@ async function extractMarketplaceOrderWalletAddresses(user: User, offer: offerDb
 	if (!app) {
 		throw NoSuchApp(user.appId);
 	}
-	const senderAddress = offer.type === "spend" ? user.walletAddress : app.walletAddresses.sender;
+	const senderAddress = offer.type === "spend" ? user.walletAddress : await selectSenderAddress(app.walletAddresses.sender, offer.amount);
 	// spend marketplace offers shouldn't exists in production, and sending the funds to app wallet instead root wallet requires
 	// client change, for now keep it like before (client pay to root wallet address)
 	const recipientAddress = offer.type === "spend" ? offer.blockchainData.recipient_address : user.walletAddress;
@@ -184,7 +184,7 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 		if (payload.sub === "earn") {
 			title = (payload as ExternalEarnOrderJWT).recipient.title;
 			description = (payload as ExternalEarnOrderJWT).recipient.description;
-			sender_address = app.walletAddresses.sender;
+			sender_address = await selectSenderAddress(app.walletAddresses.sender, (payload as ExternalEarnOrderJWT).offer.amount);
 			recipient_address = user.walletAddress;
 		} else if (payload.sub === "spend") {
 			// spend or pay_to_user
@@ -301,7 +301,7 @@ export async function submitOrder(
 	logger.info("order changed to pending", { orderId });
 
 	if (order.type === "earn") {
-		await payment.payTo(walletAddress, appId, order.amount, order.id, true, logger);
+		await payment.payTo(walletAddress, order.blockchainData.sender_address!, appId, order.amount, order.id, true, logger);
 		createEarnTransactionBroadcastToBlockchainSubmitted(order.userId, order.offerId, order.id).report();
 	}
 
@@ -408,4 +408,15 @@ function checkIfTimedOut(order: db.Order): Promise<void> {
 
 function getLockResource(type: "create" | "get", ...ids: string[]) {
 	return `locks:orders:${type}:${ids.join(":")}`;
+}
+
+export async function selectSenderAddress(db_sender_address: string, amount: Number): Promise<string> {
+	const our_wallet = db_sender_address.split(",")[0];
+	const joined_wallet = db_sender_address.split(",")[1];
+
+	const our_balance = (await payment.getWalletData(our_wallet)).kin_balance;
+	if (our_balance > amount) {
+		return our_wallet;
+	}
+	return joined_wallet;
 }
