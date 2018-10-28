@@ -133,6 +133,17 @@ export class Order extends CreationDateModel {
 			.execute();
 	}
 
+	public static getCompletedOrder<T extends Order>(userId: string, offerId: string): Promise<Order> {
+		const query = Order.createQueryBuilder()
+			.where(new Brackets(qb => {
+				qb.where("status = :completed", { completed: "completed" })
+					.orWhere("status = :pending", { pending: "pending" });
+			}))
+			.andWhere("offer_id = :offerId", { offerId })
+			.andWhere("user_id = :userId", { userId });
+		return query.getOne() as Promise<Order>;
+	}
+
 	/**
 	 * Returns one order with the id which was passed.
 	 * If `status` is passed as well, the order will be returned only if the status matches.
