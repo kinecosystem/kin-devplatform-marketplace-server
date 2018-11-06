@@ -121,7 +121,7 @@ export class Order extends CreationDateModel {
 
 	public static async updateUncompletedOrders(): Promise<void> {
 		const now = moment().format("YYYY-MM-DD HH:mm:ss.SSS");
-		const errorMessage = TransactionTimeout().toString();
+		const errorMessage = TransactionTimeout().toJson();
 		await Order.createQueryBuilder()
 			.update("orders")
 			.set({ status: "failed", error: errorMessage })
