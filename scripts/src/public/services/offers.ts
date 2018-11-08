@@ -63,10 +63,9 @@ async function filterOffers(userId: string, app: Application | undefined, logger
 	});
 
 	const filteredOffers = app.offers
-		.filter(offer => {
-			return completedOrdersForUser.find(order => order.id === offer.id)
-				=== undefined;
-		});
+		.filter(offer =>
+			completedOrdersForUser.find(order => order.offerId === offer.id) === undefined
+		);
 
 	return (await Promise.all(
 		filteredOffers
