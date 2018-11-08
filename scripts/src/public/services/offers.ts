@@ -10,6 +10,7 @@ import { Application } from "../../models/applications";
 import { ContentType, OfferType } from "../../models/offers";
 import { getConfig } from "../config";
 import { remainingDailyOffers } from "../routes/users";
+import * as orderDb from "../../models/orders";
 
 export interface PollAnswer {
 	content_type: "PollAnswer";
@@ -55,8 +56,19 @@ async function filterOffers(userId: string, app: Application | undefined, logger
 		return [];
 	}
 
+	const completedOrdersForUser = await orderDb.Order.getAll({
+		"userId": userId,
+		"origin": "marketplace",
+		"status": "completed"
+	});
+
+	const filteredOffers = app.offers
+		.filter(offer =>
+			completedOrdersForUser.find(order => order.offerId === offer.id) === undefined
+		);
+
 	return (await Promise.all(
-		app.offers
+		filteredOffers
 			.map(async offer => {
 				const content = await offerContents.getOfferContent(offer.id, logger);
 
