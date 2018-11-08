@@ -12,6 +12,7 @@ import {
 } from "../services/applications";
 import { Application, SignInType } from "../../models/applications";
 import { getConfig } from "../config";
+import * as dbOrders from "../../models/orders";
 
 type CommonSignInData = {
 	sign_in_type: "jwt" | "whitelist";
@@ -76,3 +77,11 @@ export const activateUser = async function(req: Request, res: Response) {
 	const authToken = await activateUserService(req.context.token!, req.context.user!, req.logger);
 	res.status(200).send(authToken);
 } as any as RequestHandler;
+
+export const remainingDailyOffers = async function(userId: string): Promise<number> {
+	const max_daily_earn_offers = getConfig().max_daily_earn_offers;
+	if (max_daily_earn_offers !== null) {
+		return max_daily_earn_offers - await dbOrders.Order.countToday(userId, "earn");
+	}
+	return 0;
+};
