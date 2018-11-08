@@ -9,6 +9,7 @@ import * as offerContents from "./offer_contents";
 import { Application } from "../../models/applications";
 import { ContentType, OfferType } from "../../models/offers";
 import { getConfig } from "../config";
+import { remainingDailyOffers } from "../routes/users";
 
 export interface PollAnswer {
 	content_type: "PollAnswer";
@@ -57,10 +58,6 @@ async function filterOffers(userId: string, app: Application | undefined, logger
 	return (await Promise.all(
 		app.offers
 			.map(async offer => {
-				if (await offer.didExceedCap(userId)) {
-					return null;
-				}
-
 				const content = await offerContents.getOfferContent(offer.id, logger);
 
 				if (!content) {
@@ -92,10 +89,7 @@ export async function getOffers(userId: string, appId: string, filters: ModelFil
 			)
 		);
 		// global earn capping
-		const max_daily_earn_offers = getConfig().max_daily_earn_offers;
-		if (max_daily_earn_offers !== null) {
-			offers = offers.slice(0, Math.max(0, max_daily_earn_offers - await dbOrders.Order.countToday(userId, "earn")));
-		}
+		offers = await filterDailyCap(offers, userId);
 	}
 
 	if (!filters.type || filters.type === "spend") {
@@ -114,4 +108,9 @@ export async function getOffers(userId: string, appId: string, filters: ModelFil
 
 	metrics.offersReturned(offers.length);
 	return { offers, paging: { cursors: {} } };
+}
+
+async function filterDailyCap(offers: Offer[], userId: string) {
+	offers = offers.slice(0, Math.max(0, await remainingDailyOffers(userId)));
+	return offers;
 }

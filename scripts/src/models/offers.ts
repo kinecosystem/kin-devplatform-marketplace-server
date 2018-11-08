@@ -65,21 +65,6 @@ export class Offer extends CreationDateModel {
 	public get owner(): Promise<OfferOwner | undefined> {
 		return OfferOwner.findOneById(this.ownerId);
 	}
-
-	public async didExceedCap(userId: string): Promise<boolean> {
-		const total = await Order.countByOffer(this.id);
-
-		if (total >= this.cap.total) {
-			return true;
-		}
-
-		const forUser = await Order.countByOffer(this.id, userId);
-		if (forUser >= this.cap.per_user) {
-			return true;
-		}
-
-		return false;
-	}
 }
 
 @Entity({ name: "offer_contents" })
