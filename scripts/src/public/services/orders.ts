@@ -360,7 +360,8 @@ function openOrderDbToApi(order: db.Order): OpenOrder {
 		offer_type: order.type,
 		amount: order.amount,
 		title: order.meta.title,
-		description: order.meta.description,
+		// make sure to return empty string in description instead on null
+		description: order.meta.description == null ? "" : order.meta.description,
 		blockchain_data: order.blockchainData,
 		expiration_date: order.expirationDate!.toISOString()
 	};
@@ -384,7 +385,10 @@ function orderDbToApi(order: db.Order, userId?: string): Order {
 			blockchain_data: order.blockchainData,
 			completion_date: (order.currentStatusDate || order.createdDate).toISOString()
 		}, pick(order.meta, "title", "description", "content", "call_to_action")) as Order;
-
+	// make sure to return empty string in description instead on null
+	if (apiOrder.description == null) {
+		apiOrder.description = "";
+	}
 	return apiOrder;
 }
 
