@@ -1,5 +1,5 @@
 import { Request, Response, RequestHandler } from "express";
-import { NoSuchApp, UnknownSignInType } from "../../errors";
+import { InvalidWalletAddress, NoSuchApp, UnknownSignInType } from "../../errors";
 
 import {
 	getOrCreateUserCredentials,
@@ -13,6 +13,9 @@ import {
 import { Application, SignInType } from "../../models/applications";
 import { getConfig } from "../config";
 import * as dbOrders from "../../models/orders";
+import * as metrics from "../../metrics";
+
+export type WalletData = { wallet_address: string };
 
 type CommonSignInData = {
 	sign_in_type: "jwt" | "whitelist";
@@ -68,6 +71,27 @@ export const signInUser = async function(req: RegisterRequest, res: Response) {
 		req.logger);
 
 	res.status(200).send(authToken);
+} as any as RequestHandler;
+
+export type UpdateUserRequest = Request & { body: WalletData };
+
+export const updateUser = async function(req: UpdateUserRequest, res: Response) {
+	const context = 
+	
+	req.context;
+	const walletAddress = req.body.wallet_address;
+	const userId = context.user!.id;
+	req.logger.info(`updating user ${ walletAddress }`, { walletAddress, userId });
+
+	if (!walletAddress || walletAddress.length !== 56) {
+		throw InvalidWalletAddress(walletAddress);
+	}
+
+	context.user!.walletAddress = walletAddress;
+	await context.user!.save();
+
+	metrics.walletAddressUpdate();
+	res.status(204).send();
 } as any as RequestHandler;
 
 /**
