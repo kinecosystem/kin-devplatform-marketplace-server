@@ -76,9 +76,7 @@ export const signInUser = async function(req: RegisterRequest, res: Response) {
 export type UpdateUserRequest = Request & { body: WalletData };
 
 export const updateUser = async function(req: UpdateUserRequest, res: Response) {
-	const context = 
-	
-	req.context;
+	const context = req.context;
 	const walletAddress = req.body.wallet_address;
 	const userId = context.user!.id;
 	req.logger.info(`updating user ${ walletAddress }`, { walletAddress, userId });
