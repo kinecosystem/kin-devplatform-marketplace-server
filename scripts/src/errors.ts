@@ -44,6 +44,7 @@ const CODES = {
 		InvalidExternalOrderJwt: 4,
 		InvalidJwtSignature: 5,
 		JwtKidMissing: 6,
+		InvalidWalletAddress: 7,
 	},
 	TransactionFailed: {
 		WrongSender: 1,
@@ -233,4 +234,8 @@ export function BlockchainError(message?: string) {
 
 export function TransactionTimeout() {
 	return TransactionFailed(CODES.TransactionFailed.TransactionTimeout, "transaction_timeout");
+}
+
+export function InvalidWalletAddress(address: string) {
+	return BadRequestError(CODES.BadRequest.InvalidWalletAddress, `Invalid (not 56 characters) wallet address: ${ address }`);
 }
