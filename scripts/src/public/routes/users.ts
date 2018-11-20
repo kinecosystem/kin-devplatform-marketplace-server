@@ -16,6 +16,7 @@ import * as dbOrders from "../../models/orders";
 import * as metrics from "../../metrics";
 
 export type WalletData = { wallet_address: string };
+import { getDefaultLogger } from "../../logging";
 
 type CommonSignInData = {
 	sign_in_type: "jwt" | "whitelist";
@@ -34,6 +35,8 @@ type WhitelistSignInData = CommonSignInData & {
 	api_key: string;
 };
 
+const logger = getDefaultLogger();
+
 type RegisterRequest = Request & { body: WhitelistSignInData | JwtSignInData };
 
 /**
@@ -47,6 +50,7 @@ export const signInUser = async function(req: RegisterRequest, res: Response) {
 	req.logger.info("signing in user", { data });
 	// XXX should also check which sign in types does the application allow
 	if (data.sign_in_type === "jwt") {
+		console.log("Received jwt token: ", req);
 		context = await validateRegisterJWT(data.jwt!, req.logger);
 	} else if (data.sign_in_type === "whitelist") {
 		context = await validateWhitelist(data.user_id, data.api_key, req.logger);
