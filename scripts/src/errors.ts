@@ -45,6 +45,7 @@ const CODES = {
 		InvalidJwtSignature: 5,
 		JwtKidMissing: 6,
 		InvalidWalletAddress: 7,
+		MaxWalletsExceeded: 8,
 	},
 	TransactionFailed: {
 		WrongSender: 1,
@@ -205,6 +206,10 @@ export function InvalidExternalOrderJwt() {
 
 export function JwtKidMissing() {
 	return BadRequestError(CODES.BadRequest.JwtKidMissing, "kid is missing from the JWT");
+}
+
+export function MaxWalletsExceeded() {
+	return BadRequestError(CODES.BadRequest.MaxWalletsExceeded, "No more wallet creations allowed");
 }
 
 function TransactionFailed(index: number, message: string) {
