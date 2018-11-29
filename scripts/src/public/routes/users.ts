@@ -100,10 +100,10 @@ export const activateUser = async function(req: Request, res: Response) {
 	res.status(200).send(authToken);
 } as any as RequestHandler;
 
-export const remainingDailyOffers = async function(userId: string): Promise<number> {
+export const remainingDailyMarketplaceOffers = async function(userId: string): Promise<number> {
 	const max_daily_earn_offers = getConfig().max_daily_earn_offers;
 	if (max_daily_earn_offers !== null) {
-		return max_daily_earn_offers - await dbOrders.Order.countToday(userId, "earn");
+		return max_daily_earn_offers - await dbOrders.Order.countToday(userId, "earn", "marketplace");
 	}
 	return 0;
 };

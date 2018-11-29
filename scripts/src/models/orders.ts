@@ -87,12 +87,13 @@ export class Order extends CreationDateModel {
 		return query.getCount();
 	}
 
-	public static countToday(userId: string, type: OfferType): Promise<number> {
+	public static countToday(userId: string, type: OfferType, origin: OrderOrigin): Promise<number> {
 		const midnight = new Date((new Date()).setUTCHours(0, 0, 0, 0));
 		const query = Order.createQueryBuilder()
 			.where("user_id = :userId", { userId })
 			.andWhere("type = :type", { type })
 			.andWhere("current_status_date > :midnight", { midnight })
+			.andWhere("origin = :origin", { origin })
 			.andWhere(new Brackets(qb => {
 				qb.where("status = :completed", { completed: "completed" })
 					.orWhere(
@@ -131,6 +132,17 @@ export class Order extends CreationDateModel {
 			}))
 			.andWhere("expiration_date < :date", { date: now })
 			.execute();
+	}
+
+	public static getCompletedOrder<T extends Order>(userId: string, offerId: string): Promise<Order> {
+		const query = Order.createQueryBuilder()
+			.where(new Brackets(qb => {
+				qb.where("status = :completed", { completed: "completed" })
+					.orWhere("status = :pending", { pending: "pending" });
+			}))
+			.andWhere("offer_id = :offerId", { offerId })
+			.andWhere("user_id = :userId", { userId });
+		return query.getOne() as Promise<Order>;
 	}
 
 	/**

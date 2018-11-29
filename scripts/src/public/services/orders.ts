@@ -34,7 +34,7 @@ import { ExternalEarnOrderJWT, ExternalSpendOrderJWT, ExternalPayToUserOrderJwt 
 import {
 	create as createEarnTransactionBroadcastToBlockchainSubmitted
 } from "../../analytics/events/earn_transaction_broadcast_to_blockchain_submitted";
-import { remainingDailyOffers } from "../routes/users";
+import { remainingDailyMarketplaceOffers } from "../routes/users";
 
 export interface OrderList {
 	orders: Order[];
@@ -96,7 +96,7 @@ export async function changeOrder(orderId: string, change: Partial<Order>, logge
 }
 
 async function createOrder(offer: offerDb.Offer, user: User) {
-	if (await remainingDailyOffers(user.id) === 0) {
+	if (await remainingDailyMarketplaceOffers(user.id) === 0) {
 		return undefined;
 	}
 	const { senderAddress, recipientAddress } = await extractMarketplaceOrderWalletAddresses(user, offer);
@@ -162,9 +162,10 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 	const payload = await validateExternalOrderJWT(jwt, user.appUserId, logger);
 
 	let order = await db.Order.findOne({ userId: user.id, offerId: payload.offer.id });
+	const completed_orders = await db.Order.getCompletedOrder( user.id, payload.offer.id);
 
 	if (!order || order.status !== "opened") {
-		if (order && (order.status === "completed" || order.status === "pending")) {
+		if (order && (completed_orders != null)) {
 			throw ExternalOrderAlreadyCompleted(order.id);
 		} // else order.status === "failed" - act as if order didn't exist
 

@@ -9,7 +9,7 @@ import * as offerContents from "./offer_contents";
 import { Application } from "../../models/applications";
 import { ContentType, OfferType } from "../../models/offers";
 import { getConfig } from "../config";
-import { remainingDailyOffers } from "../routes/users";
+import { remainingDailyMarketplaceOffers } from "../routes/users";
 import * as orderDb from "../../models/orders";
 
 export interface PollAnswer {
@@ -123,6 +123,6 @@ export async function getOffers(userId: string, appId: string, filters: ModelFil
 }
 
 async function filterDailyCap(offers: Offer[], userId: string) {
-	offers = offers.slice(0, Math.max(0, await remainingDailyOffers(userId)));
+	offers = offers.slice(0, Math.max(0, await remainingDailyMarketplaceOffers(userId)));
 	return offers;
 }
