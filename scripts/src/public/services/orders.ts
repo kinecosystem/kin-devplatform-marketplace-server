@@ -34,7 +34,7 @@ import { ExternalEarnOrderJWT, ExternalSpendOrderJWT, ExternalPayToUserOrderJwt 
 import {
 	create as createEarnTransactionBroadcastToBlockchainSubmitted
 } from "../../analytics/events/earn_transaction_broadcast_to_blockchain_submitted";
-import { remainingDailyOffers } from "../routes/users";
+import { remainingDailyMarketplaceOffers } from "../routes/users";
 
 export interface OrderList {
 	orders: Order[];
@@ -96,7 +96,7 @@ export async function changeOrder(orderId: string, change: Partial<Order>, logge
 }
 
 async function createOrder(offer: offerDb.Offer, user: User) {
-	if (await remainingDailyOffers(user.id) === 0) {
+	if (await remainingDailyMarketplaceOffers(user.id) === 0) {
 		return undefined;
 	}
 	const { senderAddress, recipientAddress } = await extractMarketplaceOrderWalletAddresses(user, offer);
