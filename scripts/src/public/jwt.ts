@@ -3,7 +3,13 @@ import * as jsonwebtoken from "jsonwebtoken";
 
 import { isNothing } from "../utils";
 import { Application } from "../models/applications";
-import { NoSuchApp, NoSuchPublicKey, JwtKidMissing, WrongJwtAlgorithm, InvalidJwtSignature } from "../errors";
+import {
+	NoSuchApp,
+	NoSuchPublicKey,
+	JwtKidMissing,
+	InvalidJwtSignature,
+	MissingJwtSignature,
+} from "../errors";
 
 export type JWTClaims<SUB extends string> = {
 	iss: string; // issuer - the app_id
@@ -24,6 +30,10 @@ export type JWTContent<T, SUB extends string> = {
 
 export async function verify<T, SUB extends string>(token: string, logger: LoggerInstance): Promise<JWTContent<T, SUB>> {
 	const decoded = jsonwebtoken.decode(token, { complete: true }) as JWTContent<T, SUB>;
+	if (isNothing(decoded)) {
+		throw MissingJwtSignature();
+	}
+
 	if (decoded.header.alg.toUpperCase() !== "ES256") {
 		logger.warn(`got JWT with wrong algorithm ${decoded.header.alg}. ignoring`);
 		// throw WrongJWTAlgorithm(decoded.header.alg);  // TODO uncomment when we deprecate other algo support
