@@ -1,3 +1,5 @@
+import { initLogger } from "./logging";
+
 export type ApiError = {
 	code: number;
 	error: string;
@@ -45,6 +47,7 @@ const CODES = {
 		InvalidJwtSignature: 5,
 		JwtKidMissing: 6,
 		InvalidWalletAddress: 7,
+		MissingJwt: 8,
 	},
 	TransactionFailed: {
 		WrongSender: 1,
@@ -187,12 +190,12 @@ export function UnknownSignInType(type: string) {
 	return BadRequestError(CODES.BadRequest.UnknownSignInType, `Unknown sign-in type: ${type}`);
 }
 
-export function WrongJwtAlgorithm(type: string) {
-	return BadRequestError(CODES.BadRequest.UnknownSignInType, `algorithm type ("${type}") not supported`);
-}
-
 export function InvalidJwtSignature() {
 	return BadRequestError(CODES.BadRequest.InvalidJwtSignature, `the JWT failed to verify`);
+}
+
+export function MissingJwtSignature() {
+	return BadRequestError(CODES.BadRequest.MissingJwt, `Key JWT is missing`);
 }
 
 export function InvalidPollAnswers() {
