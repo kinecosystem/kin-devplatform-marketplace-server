@@ -16,6 +16,10 @@ export function userActivate(newUser: boolean) {
 	statsd.increment("user_activate", 1, undefined, { new_user: "true" });
 }
 
+export function maxWalletsExceeded() {
+	statsd.increment("max_wallets_exceeded", 1);
+}
+
 export function timeRequest(time: number, method: string, path: string) {
 	statsd.timing("request", time, undefined, { path: `${method}: ${path}` });
 }
