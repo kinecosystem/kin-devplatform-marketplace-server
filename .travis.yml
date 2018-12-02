@@ -6,17 +6,18 @@ node_js:
   - "8"
 
 before_script:
-  - make build db # db - for make test
-  - make generate-funding-address
-  - make create-jwt-keys
-  - make up-dev # clear-redis # up-dev - for test-system-docker
+  # - make build db # db - for make test
+  # - make generate-funding-address
+  # - make create-jwt-keys
+  # - make up-dev # clear-redis # up-dev - for test-system-docker
 
 script:
-  - make test
-  - make test-system-docker
+  - make build
+  # - make test
+  # - make test-system-docker
 
 after_failure:
-  - make logs
+  # - make logs
 
 after_script:
-  - make down
+  # - make down

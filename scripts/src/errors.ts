@@ -46,7 +46,7 @@ const CODES = {
 		InvalidExternalOrderJwt: 4,
 		InvalidJwtSignature: 5,
 		JwtKidMissing: 6,
-		InvalidWalletAddress: 7,		
+		InvalidWalletAddress: 7,
 		MissingJwt: 8,
 		MaxWalletsExceeded: 9,
 	},
