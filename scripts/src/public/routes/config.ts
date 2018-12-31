@@ -39,7 +39,13 @@ export const getConfigHandler = async function(req: Request, res: Response, next
 	res.status(200).send(data);
 } as RequestHandler;
 
-export const getAppBlockchainVersion = async function(req: Request, res: Response) {
+export type GetAppBlockchainVersionRequest = Request & {
+	params: {
+		app_id: string;
+	};
+};
+
+export const getAppBlockchainVersion = async function(req: GetAppBlockchainVersionRequest, res: Response) {
 	const app_id = req.params.app_id;
 	const data: string = await getAppBlockchainVersionService(app_id);
 	res.status(200).send(data);

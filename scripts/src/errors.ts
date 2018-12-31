@@ -170,7 +170,7 @@ export function WhitelistTransactionByDifferentUser(loggedInUser: string) {
 }
 
 export function TransactionMismatch() {
-	const message = `Requested tx envelope did not match with the excpected order`;
+	const message = "Requested tx envelope did not match with the excpected order";
 	return ConflictError(CODES.Conflict.TransactionMismatch, message);
 }
 

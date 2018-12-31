@@ -3,6 +3,7 @@ import { LoggerInstance } from "winston";
 import { verify as verifyJwt } from "../jwt";
 import { InvalidApiKey, NoSuchApp } from "../../errors";
 import { Application, AppWhitelists } from "../../models/applications";
+import { BlockchainVersion } from "../../models/offers";
 
 export type RegisterPayload = {
 	user_id: string;
@@ -41,7 +42,7 @@ export async function validateWhitelist(
 	return { appUserId, appId: app.id };
 }
 
-export async function getAppBlockchainVersion(app_id: string): Promise<string> {
+export async function getAppBlockchainVersion(app_id: string): Promise<BlockchainVersion> {
 	const app = await Application.findOneById(app_id);
 	if (!app) {
 		throw NoSuchApp(app_id);

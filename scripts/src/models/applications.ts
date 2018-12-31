@@ -8,7 +8,7 @@ export type SignInType = "jwt" | "whitelist";
 export type ApplicationConfig = {
 	max_user_wallets: number | null;
 	sign_in_types: SignInType[];
-	blockchain_version: string;
+	blockchain_version: "2" | "3";
 };
 
 @Entity({ name: "applications" })
