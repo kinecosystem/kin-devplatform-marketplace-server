@@ -170,7 +170,7 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 	if (order.type !== "earn" && order.isExternalOrder()) {
 		// If a completed order was a native spend or p2p, remove the watcher for that address
 		// If there are two or more orders for that address, the payment service will make sure not to completly remove it
-		await removeWatcherEndpoint(payment.recipient_address, order.id);
+		await removeWatcherEndpoint(order.blockchainData.blockchain_version!, payment.recipient_address, order.id);
 	}
 	await order.save();
 

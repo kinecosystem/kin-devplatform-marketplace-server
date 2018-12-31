@@ -1,7 +1,7 @@
 import { LoggerInstance } from "winston";
 
 import { verify as verifyJwt } from "../jwt";
-import { InvalidApiKey } from "../../errors";
+import { InvalidApiKey, NoSuchApp } from "../../errors";
 import { Application, AppWhitelists } from "../../models/applications";
 
 export type RegisterPayload = {
@@ -39,4 +39,12 @@ export async function validateWhitelist(
 	logger.warn(`user ${appUserId} not found in whitelist for app ${ app.id }`);
 
 	return { appUserId, appId: app.id };
+}
+
+export async function getAppBlockchainVersion(app_id: string): Promise<string> {
+	const app = await Application.findOneById(app_id);
+	if (!app) {
+		throw NoSuchApp(app_id);
+	}
+	return app.config.blockchain_version;
 }
