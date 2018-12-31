@@ -34,6 +34,8 @@ const CODES = {
 		ExternalOrderAlreadyCompleted: 1,
 		ExternalEarnOfferByDifferentUser: 2,
 		CompletedOrderCantTransitionToFailed: 3,
+		WhitelistTransactionByDifferentUser: 4,
+		TransactionMismatch: 5
 	},
 	InternalServerError: {
 		OpenedOrdersOnly: 1,
@@ -160,6 +162,16 @@ export function ExternalOrderAlreadyCompleted(orderId: string) {
 export function ExternalEarnOfferByDifferentUser(loggedInUser: string, payToUser: string) {
 	const message = `Pay to user (${payToUser}) is not the logged in user (${loggedInUser})`;
 	return ConflictError(CODES.Conflict.ExternalEarnOfferByDifferentUser, message);
+}
+
+export function WhitelistTransactionByDifferentUser(loggedInUser: string) {
+	const message = `Whitelisted order is not by the user (${loggedInUser})`;
+	return ConflictError(CODES.Conflict.WhitelistTransactionByDifferentUser, message);
+}
+
+export function TransactionMismatch() {
+	const message = `Requested tx envelope did not match with the excpected order`;
+	return ConflictError(CODES.Conflict.TransactionMismatch, message);
 }
 
 export function CompletedOrderCantTransitionToFailed() {
