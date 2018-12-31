@@ -430,8 +430,6 @@ export async function selectSenderAddress(blockchainVersion: string, db_sender_a
 	const our_wallet = db_sender_address.split(",")[0];
 	const joined_wallet = db_sender_address.split(",")[1];
 
-	const a = await payment.getWalletData(blockchainVersion, our_wallet);
-	console.log(a)
 	const our_balance = (await payment.getWalletData(blockchainVersion, our_wallet)).kin_balance;
 	if (our_balance > amount) {
 		return our_wallet;

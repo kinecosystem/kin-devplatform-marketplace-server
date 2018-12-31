@@ -146,7 +146,7 @@ export async function whitelistTransaction(
 		order_id: order.id,
 		source: order.blockchainData.sender_address!,
 		destination: order.blockchainData.recipient_address!,
-		amount: order.amount, 
+		amount: order.amount,
 		xdr: tx_envelope,
 		network_id,
 		app_id
