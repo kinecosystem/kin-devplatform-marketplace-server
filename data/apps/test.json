@@ -6,7 +6,8 @@
   },
   "config": {
     "max_user_wallets": null,
-    "sign_in_types": ["jwt", "whitelist"]
+    "sign_in_types": ["jwt", "whitelist"],
+    "blockchain_version": "3"
   },
   "app_id": "test",
   "name": "Test App"
