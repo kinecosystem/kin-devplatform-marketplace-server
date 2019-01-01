@@ -124,8 +124,10 @@ export type WhitelistTransactionRequest = Request & {
 	params: {
 		order_id: string;
 	},
-	tx_envelope: string;
-	network_id: string;
+	body: {
+		tx_envelope: string;
+		network_id: string;
+	}
 };
 
 /**
@@ -136,6 +138,6 @@ export const whitelistTransaction = async function(req: WhitelistTransactionRequ
 	if (req.context.user!.id !== order.userId) {
 		throw WhitelistTransactionByDifferentUser(req.context.user!.appUserId);
 	}
-	const whitelistedTx = await whitelistTransactionService(order, req.network_id, req.tx_envelope, req.context.user!.appId);
+	const whitelistedTx = await whitelistTransactionService(order, req.body.network_id, req.body.tx_envelope, req.context.user!.appId);
 	res.status(200).send(whitelistedTx);
 } as any as RequestHandler;
