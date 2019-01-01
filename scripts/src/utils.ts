@@ -2,6 +2,12 @@ import * as _path from "path";
 import { join } from "path";
 import * as fs from "fs";
 
+import { Express } from "express";
+import { Context } from "./public/routes";
+export interface RequestWithContext extends Express.Request {
+	context?: Context;
+}
+
 const fromProjectRoot = _path.join.bind(path, __dirname, "../../");
 
 export type ServerError = Error & { syscall: string; code: string; };
@@ -141,4 +147,8 @@ export function readKeysDir(dir: string): KeyMap {
 		};
 	});
 	return keys;
+}
+
+export function getAppIdFromRequest(req: RequestWithContext): string {
+	return req.context && req.context.user ? req.context.user.appId : "";
 }

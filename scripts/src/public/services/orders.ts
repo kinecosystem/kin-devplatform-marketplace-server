@@ -120,7 +120,7 @@ async function createOrder(offer: offerDb.Offer, user: User) {
 	}
 
 	await order.save();
-	metrics.createOrder("marketplace", offer.type, offer.id);
+	metrics.createOrder("marketplace", offer.type, offer.id, user.appId);
 
 	return order;
 }
@@ -239,7 +239,7 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 		}
 
 		await order.save();
-		metrics.createOrder("external", payload.sub, payload.offer.id);
+		metrics.createOrder("external", payload.sub, payload.offer.id, user.appId);
 
 		logger.info("created new open external order", {
 			offerId: payload.offer.id,
@@ -306,7 +306,7 @@ export async function submitOrder(
 		createEarnTransactionBroadcastToBlockchainSubmitted(order.userId, order.offerId, order.id).report();
 	}
 
-	metrics.submitOrder(order.type, order.offerId);
+	metrics.submitOrder(order.type, order.offerId, appId);
 	return orderDbToApi(order);
 }
 
