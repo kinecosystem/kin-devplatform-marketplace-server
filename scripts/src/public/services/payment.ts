@@ -8,6 +8,7 @@ import { performance } from "perf_hooks";
 import { getConfig } from "../config";
 import * as db from "../../models/orders";
 import { TransactionMismatch } from "../../errors";
+import { BlockchainVersion } from "../../models/offers";
 
 const config = getConfig();
 const webhook = `${config.internal_service}/v1/internal/webhook`;
@@ -78,7 +79,7 @@ export async function payTo(
 	console.log("pay to took " + (performance.now() - t) + "ms");
 }
 
-export async function createWallet(blockchainVersion: string, walletAddress: string, appId: string, id: string, logger: LoggerInstance) {
+export async function createWallet(blockchainVersion: BlockchainVersion, walletAddress: string, appId: string, id: string, logger: LoggerInstance) {
 	const payload: WalletRequest = {
 		id,
 		wallet_address: walletAddress,
@@ -121,7 +122,7 @@ export type BlockchainConfig = {
 	asset_code: string;
 };
 
-export async function getBlockchainConfig(blockchainVersion: string, logger: LoggerInstance): Promise<BlockchainConfig> {
+export async function getBlockchainConfig(blockchainVersion: BlockchainVersion, logger: LoggerInstance): Promise<BlockchainConfig> {
 	const res = await client.get(`${getPaymentServiceUrl(blockchainVersion)}/config`);
 	return res.data;
 }
@@ -153,16 +154,20 @@ export async function whitelistTransaction(
 	};
 
 	// whitelist is only for the new payment service
-	const whitelist_response = (await client.post(`${config.new_payment_service}/whitelist`, payload));
-	if (whitelist_response.status === 401) {
-		throw TransactionMismatch();
+	try {
+		const whitelist_response = (await client.post(`${config.payment_service_v3}/whitelist`, payload));
+		return whitelist_response.data.tx_envelope;
+	} catch (error) {
+		if (error.response.status === 401) {
+			throw TransactionMismatch();
+		}
+		throw error;
 	}
-	return whitelist_response.data.tx_envelope;
 }
 
 function getPaymentServiceUrl(blockchainVersion: string): string {
 	if (blockchainVersion === "3") {
-		return config.new_payment_service;
+		return config.payment_service_v3;
 	}
 	return config.payment_service;
 }
