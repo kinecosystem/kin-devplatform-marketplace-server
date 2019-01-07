@@ -12,7 +12,7 @@ import { BlockchainVersion } from "../../models/offers";
 
 const config = getConfig();
 const webhook = `${config.internal_service}/v1/internal/webhook`;
-const client = axios.create({ timeout: 1000 });
+const client = axios.create({ timeout: 10000 });
 axiosRetry(client, { retries: 3 }); // retries on 5xx errors
 
 interface PaymentRequest {
@@ -156,7 +156,7 @@ export async function whitelistTransaction(
 	// whitelist is only for the new payment service
 	try {
 		const whitelist_response = (await client.post(`${config.payment_service_v3}/whitelist`, payload));
-		return whitelist_response.data.tx_envelope;
+		return whitelist_response.data.tx;
 	} catch (error) {
 		if (error.response.status === 401) {
 			throw TransactionMismatch();

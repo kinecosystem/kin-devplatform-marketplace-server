@@ -164,13 +164,13 @@ export function ExternalEarnOfferByDifferentUser(loggedInUser: string, payToUser
 	return ConflictError(CODES.Conflict.ExternalEarnOfferByDifferentUser, message);
 }
 
-export function WhitelistTransactionByDifferentUser(loggedInUser: string) {
-	const message = `Whitelisted order is not by the user (${loggedInUser})`;
+export function WhitelistTransactionByDifferentUser(loggedInUserId: string) {
+	const message = `Whitelisted order is not by the user (${loggedInUserId})`;
 	return ConflictError(CODES.Conflict.WhitelistTransactionByDifferentUser, message);
 }
 
 export function TransactionMismatch() {
-	const message = "Requested tx envelope did not match with the excpected order";
+	const message = "Requested tx envelope did not match with the expected order";
 	return ConflictError(CODES.Conflict.TransactionMismatch, message);
 }
 

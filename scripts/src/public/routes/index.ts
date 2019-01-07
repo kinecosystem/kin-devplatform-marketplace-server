@@ -105,7 +105,7 @@ export function createRoutes(app: express.Express, pathPrefix?: string) {
 			.authenticated(AuthScopes.TOS)
 			.get("/", getOrderHistory)
 			.get("/:order_id", getOrder)
-			.get("/:order_id/whitelist", whitelistTransaction)
+			.post("/:order_id/whitelist", whitelistTransaction)
 			.post("/:order_id", submitOrder)
 			.delete("/:order_id", cancelOrder)
 			.patch("/:order_id", changeOrder));

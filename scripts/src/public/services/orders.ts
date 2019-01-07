@@ -78,8 +78,9 @@ export async function getOrder(orderId: string, logger: LoggerInstance): Promise
 	return orderDbToApi(order);
 }
 
-export async function getOpenOrder(orderId: string): Promise<db.MarketplaceOrder| db.ExternalOrder> {
-	const order = await db.Order.getOne(orderId, "opened") as db.MarketplaceOrder | db.ExternalOrder;
+export async function getOrderForWhitelisting(orderId: string): Promise<db.MarketplaceOrder| db.ExternalOrder> {
+	// Get order, regardless of status
+	const order = await db.Order.getOne(orderId) as db.MarketplaceOrder | db.ExternalOrder;
 
 	if (!order) {
 		throw NoSuchOrder(orderId);

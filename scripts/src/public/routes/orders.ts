@@ -3,7 +3,7 @@ import { Request, RequestHandler, Response } from "express";
 import {
 	Order,
 	getOrder as getOrderService,
-	getOpenOrder as getOpenOrderService,
+	getOrderForWhitelisting as getOrderForWhitelistingService,
 	cancelOrder as cancelOrderService,
 	submitOrder as submitOrderService,
 	changeOrder as changeOrderService,
@@ -134,7 +134,7 @@ export type WhitelistTransactionRequest = Request & {
  * whitelist user's transaction
  */
 export const whitelistTransaction = async function(req: WhitelistTransactionRequest, res: Response) {
-	const order = await getOpenOrderService(req.params.order_id);
+	const order = await getOrderForWhitelistingService(req.params.order_id);
 	if (req.context.user!.id !== order.userId) {
 		throw WhitelistTransactionByDifferentUser(req.context.user!.appUserId);
 	}
