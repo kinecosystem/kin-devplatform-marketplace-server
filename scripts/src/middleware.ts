@@ -5,7 +5,7 @@ import { Request, Response } from "express-serve-static-core";
 
 import * as metrics from "./metrics";
 import { getConfig } from "./config";
-import { generateId, pick } from "./utils";
+import { generateId, pick, getAppIdFromRequest } from "./utils";
 import { MarketplaceError } from "./errors";
 import { getDefaultLogger } from "./logging";
 
@@ -76,7 +76,7 @@ export const reportMetrics = function(req: express.Request, res: express.Respons
 
 	res.on("finish", () => {
 		const path = req.route ? req.route.path : (req.url || "unknown");
-		metrics.timeRequest(performance.now() - t, req.method, path);
+		metrics.timeRequest(performance.now() - t, req.method, path, getAppIdFromRequest(req));
 	});
 
 	next();
@@ -105,7 +105,7 @@ function clientErrorHandler(error: MarketplaceError, req: express.Request, res: 
 		"x-os",
 		"x-sdk-version",
 		"x-device-model",
-		"x-device-manufacturer"));
+		"x-device-manufacturer"), getAppIdFromRequest(req));
 	// set headers from the error if any
 	Object.keys(error.headers).forEach(key => res.setHeader(key, error.headers[key]));
 	res.status(error.status).send(error.toJson());
@@ -114,7 +114,7 @@ function clientErrorHandler(error: MarketplaceError, req: express.Request, res: 
 function serverErrorHandler(error: any, req: express.Request, res: express.Response) {
 	const log = req.logger || logger;
 
-	metrics.reportServerError(req.method, req.url);
+	metrics.reportServerError(req.method, req.url, getAppIdFromRequest(req));
 
 	let message = `Error
 	method: ${ req.method }

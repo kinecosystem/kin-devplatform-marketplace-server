@@ -176,7 +176,7 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 	}
 	await order.save();
 
-	metrics.completeOrder(order.type, order.offerId);
+	metrics.completeOrder(order.type, order.offerId, payment.app_id );
 	logger.info(`completed order with payment <${payment.id}, ${payment.transaction_id}>`);
 }
 
