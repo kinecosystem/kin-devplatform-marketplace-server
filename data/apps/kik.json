@@ -6,7 +6,8 @@
   },
   "config": {
     "max_user_wallets": null,
-    "sign_in_types": ["jwt"]
+    "sign_in_types": ["jwt"],
+    "blockchain_version": "3"
   },
   "app_id": "kik",
   "name": "Kik Messenger"

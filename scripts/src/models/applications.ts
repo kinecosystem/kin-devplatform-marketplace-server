@@ -1,13 +1,14 @@
 import { generateId, IdPrefix } from "../utils";
 import { Column, Entity, Index, JoinTable, ManyToMany } from "typeorm";
 import { CreationDateModel, register as Register, initializer as Initializer } from "./index";
-import { Offer } from "./offers";
+import { Offer, BlockchainVersion } from "./offers";
 
 export type StringMap = { [key: string]: string; };  // key => value pairs
 export type SignInType = "jwt" | "whitelist";
 export type ApplicationConfig = {
 	max_user_wallets: number | null;
 	sign_in_types: SignInType[];
+	blockchain_version: BlockchainVersion;
 };
 
 @Entity({ name: "applications" })

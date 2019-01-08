@@ -8,7 +8,10 @@ export type BlockchainData = {
 	transaction_id?: string;
 	sender_address?: string;
 	recipient_address?: string;
+	blockchain_version?: BlockchainVersion;
 };
+
+export type BlockchainVersion = "2" | "3";
 
 export type OfferMeta = {
 	title: string;

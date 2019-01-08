@@ -48,7 +48,7 @@ export async function getOrCreateUserCredentials(
 			existingUser.walletCount += 1;
 			existingUser.walletAddress = walletAddress;
 			await existingUser.save();
-			await payment.createWallet(existingUser.walletAddress, existingUser.appId, existingUser.id, logger);
+			await payment.createWallet(app.config.blockchain_version, existingUser.walletAddress, existingUser.appId, existingUser.id, logger);
 			metrics.userRegister(false, true, appId);
 		} else {
 			metrics.userRegister(false, false, appId);
@@ -63,7 +63,7 @@ export async function getOrCreateUserCredentials(
 			user = User.new({ appUserId, appId, walletAddress });
 			await user.save();
 			logger.info(`creating stellar wallet for new user ${user.id}: ${user.walletAddress}`);
-			await payment.createWallet(user.walletAddress, user.appId, user.id, logger);
+			await payment.createWallet(app.config.blockchain_version, user.walletAddress, user.appId, user.id, logger);
 			metrics.userRegister(true, true, appId);
 		} catch (e) {
 			// maybe caught a "violates unique constraint" error, check by finding the user again
