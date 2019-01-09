@@ -49,3 +49,13 @@ export async function getAppBlockchainVersion(app_id: string): Promise<Blockchai
 	}
 	return app.config.blockchain_version;
 }
+
+export async function setAppBlockchainVersion(app_id: string, blockchain_version: BlockchainVersion): Promise<void> {
+	const app = await Application.findOneById(app_id);
+	if (!app) {
+		throw NoSuchApp(app_id);
+	}
+
+	app.config.blockchain_version = blockchain_version;
+	app.save();
+}

@@ -4,7 +4,10 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { BlockchainConfig, getBlockchainConfig } from "../services/payment";
 import { getDefaultLogger } from "../../logging";
 import { getJwtKeys } from "../services/internal_service";
-import { getAppBlockchainVersion as getAppBlockchainVersionService } from "../services/applications";
+import { getAppBlockchainVersion as getAppBlockchainVersionService,
+	setAppBlockchainVersion as setAppBlockchainVersionService } from "../services/applications";
+import { BlockchainVersion, BlockchainVersionValues } from "../../models/offers";
+import { config } from "bluebird";
 
 const CONFIG = getConfig();
 let JWT_KEYS: KeyMap;
@@ -47,4 +50,27 @@ export const getAppBlockchainVersion = async function(req: GetAppBlockchainVersi
 	const app_id = req.params.app_id;
 	const data = await getAppBlockchainVersionService(app_id);
 	res.status(200).send(data);
+} as any as RequestHandler;
+
+export type SetAppBlockchainVersionRequest = Request & {
+	params: {
+		app_id: string;
+	};
+	body: {
+		blockchain_version: BlockchainVersion;
+	}
+};
+
+export const setAppBlockchainVersion = async function(req: SetAppBlockchainVersionRequest, res: Response) {
+	if (CONFIG.killswitch_via_api === "true") {
+		if (BlockchainVersionValues.indexOf(req.body.blockchain_version) > 0) {
+			const app_id = req.params.app_id;
+			await setAppBlockchainVersionService(app_id, req.body.blockchain_version);
+			res.status(200).send();
+		} else {
+			res.status(401).send();
+		}
+	} else {
+		res.status(403).send();
+	}
 } as any as RequestHandler;

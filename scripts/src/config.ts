@@ -22,6 +22,7 @@ export interface Config {
 	commit?: string;
 	timestamp?: string;
 	bi_service: string;
+	killswitch_via_api: string;
 }
 
 let config: Config;
@@ -47,6 +48,7 @@ export function init(filePath: string) {
 	config.commit = process.env.BUILD_COMMIT || config.commit;
 	config.timestamp = process.env.BUILD_TIMESTAMP || config.timestamp;
 	config.redis = process.env.APP_REDIS || config.redis;
+	config.killswitch_via_api = process.env.KILLSWITCH_VIA_API || config.killswitch_via_api;
 }
 
 export function getConfig<T extends Config>(): T {
