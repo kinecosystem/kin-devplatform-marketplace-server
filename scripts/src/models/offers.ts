@@ -3,6 +3,7 @@ import { Column, Entity, Index, PrimaryColumn } from "typeorm";
 import { CreationDateModel, Model, register as Register, initializer as Initializer } from "./index";
 import { generateId, IdPrefix } from "../utils";
 import { OrderMeta, Order } from "./orders";
+import { type } from "os";
 
 export type BlockchainData = {
 	transaction_id?: string;
@@ -12,6 +13,7 @@ export type BlockchainData = {
 };
 
 export type BlockchainVersion = "2" | "3";
+export const BlockchainVersionValues = ["2", "3"] as BlockchainVersion[];
 
 export type OfferMeta = {
 	title: string;

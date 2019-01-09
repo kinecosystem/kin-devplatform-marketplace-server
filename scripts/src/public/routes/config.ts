@@ -6,7 +6,8 @@ import { getDefaultLogger } from "../../logging";
 import { getJwtKeys } from "../services/internal_service";
 import { getAppBlockchainVersion as getAppBlockchainVersionService,
 	setAppBlockchainVersion as setAppBlockchainVersionService } from "../services/applications";
-import { BlockchainVersion } from "../../models/offers";
+import { BlockchainVersion, BlockchainVersionValues } from "../../models/offers";
+import { config } from "bluebird";
 
 const CONFIG = getConfig();
 let JWT_KEYS: KeyMap;
@@ -62,9 +63,13 @@ export type SetAppBlockchainVersionRequest = Request & {
 
 export const setAppBlockchainVersion = async function(req: SetAppBlockchainVersionRequest, res: Response) {
 	if (CONFIG.killswitch_via_api === "true") {
-		const app_id = req.params.app_id;
-		await setAppBlockchainVersionService(app_id, req.body.blockchain_version);
-		res.status(200).send();
+		if (BlockchainVersionValues.indexOf(req.body.blockchain_version) > 0) {
+			const app_id = req.params.app_id;
+			await setAppBlockchainVersionService(app_id, req.body.blockchain_version);
+			res.status(200).send();
+		} else {
+			res.status(401).send();
+		}
 	} else {
 		res.status(403).send();
 	}
