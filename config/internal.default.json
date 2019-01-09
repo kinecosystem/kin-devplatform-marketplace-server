@@ -18,8 +18,10 @@
 		"logging": false
 	},
 	"payment_service": "http://localhost:5000",
+        "payment_service_v3": "http://localhost:5001",
 	"internal_service": "http://localhost:3001",
 	"jwt_keys_dir": "jwt",
 	"sign_in_types": ["jwt", "whitelist"],
-	"bi_service": "https://kin-bi.appspot.com/eco_"
+	"bi_service": "https://kin-bi.appspot.com/eco_",
+        "killswitch_via_api": "false"
 }

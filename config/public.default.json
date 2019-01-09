@@ -24,11 +24,13 @@
 		"port": 8125
 	},
 	"payment_service": "http://localhost:5000",
+        "payment_service_v3": "http://localhost:5001",
 	"internal_service": "http://localhost:3001",
 	"webview": "https://some-url.com",
 	"ecosystem_service": "http://localhost:3000",
 	"environment_name": "local",
 	"bi_service": "https://kin-bi.appspot.com/eco_",
 	"sign_in_types": ["jwt", "whitelist"],
-	"max_daily_earn_offers": 4
+	"max_daily_earn_offers": 4,
+        "killswitch_via_api": "false"
 }

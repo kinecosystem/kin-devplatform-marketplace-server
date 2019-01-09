@@ -15,7 +15,7 @@ import {
 	createExternalOrder,
 	whitelistTransaction
 } from "./orders";
-import { getConfigHandler, getAppBlockchainVersion } from "./config";
+import { getConfigHandler, getAppBlockchainVersion, setAppBlockchainVersion } from "./config";
 import { statusHandler } from "../middleware";
 
 export type Context = {
@@ -87,7 +87,8 @@ export function createRoutes(app: express.Express, pathPrefix?: string) {
 	app.use(createPath("config", pathPrefix),
 		Router()
 			.get("/", getConfigHandler)
-			.get("/blockchain/:app_id", getAppBlockchainVersion));
+			.get("/blockchain/:app_id", getAppBlockchainVersion)
+			.post("/blockchain/:app_id", setAppBlockchainVersion));
 
 	app.use(createPath("offers", pathPrefix),
 		Router()
