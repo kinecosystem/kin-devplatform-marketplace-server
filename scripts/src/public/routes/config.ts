@@ -61,7 +61,7 @@ export type SetAppBlockchainVersionRequest = Request & {
 };
 
 export const setAppBlockchainVersion = async function(req: SetAppBlockchainVersionRequest, res: Response) {
-	if (CONFIG.killswitch_via_api !== "true") {
+	if (CONFIG.killswitch_via_api === "true") {
 		const app_id = req.params.app_id;
 		const data = await setAppBlockchainVersionService(app_id, req.body.blockchain_version);
 		res.status(200).send(data);
