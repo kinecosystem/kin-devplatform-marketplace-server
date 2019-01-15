@@ -57,5 +57,9 @@ export async function setAppBlockchainVersion(app_id: string, blockchain_version
 	}
 
 	app.config.blockchain_version = blockchain_version;
-	app.save();
+	await Application.createQueryBuilder()
+		.update("applications")
+		.set({ config : app.config })
+		.where("id = :id", { id : app_id })
+		.execute();
 }
