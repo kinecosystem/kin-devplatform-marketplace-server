@@ -311,6 +311,7 @@ export async function submitOrder(
 	}
 
 	order.setStatus("pending");
+	order.blockchainData.blockchain_version = await getAppBlockchainVersion(appId);
 	await order.save();
 	logger.info("order changed to pending", { orderId });
 
@@ -320,9 +321,6 @@ export async function submitOrder(
 	}
 
 	metrics.submitOrder(order.type, order.offerId, appId);
-	// We only change the version when we show it to the user, we dont change it in the database
-	const blockchain_version = await getAppBlockchainVersion(appId);
-	order.blockchainData.blockchain_version = blockchain_version;
 	return orderDbToApi(order);
 }
 
