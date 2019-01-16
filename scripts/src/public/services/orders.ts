@@ -35,6 +35,7 @@ import {
 	create as createEarnTransactionBroadcastToBlockchainSubmitted
 } from "../../analytics/events/earn_transaction_broadcast_to_blockchain_submitted";
 import { remainingDailyMarketplaceOffers } from "../routes/users";
+import { getAppBlockchainVersion } from "./applications";
 
 export interface OrderList {
 	orders: Order[];
@@ -319,6 +320,9 @@ export async function submitOrder(
 	}
 
 	metrics.submitOrder(order.type, order.offerId, appId);
+	// We only change the version when we show it to the user, we dont change it in the database
+	const blockchain_version = await getAppBlockchainVersion(appId);
+	order.blockchainData.blockchain_version = blockchain_version;
 	return orderDbToApi(order);
 }
 
