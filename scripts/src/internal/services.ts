@@ -168,6 +168,8 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 		order.error = null;
 	}
 
+	const prevStatus = order.status;
+	const prevStatusDate = order.currentStatusDate;
 	order.setStatus("completed");
 	if (order.type !== "earn" && order.isExternalOrder()) {
 		// If a completed order was a native spend or p2p, remove the watcher for that address
@@ -176,7 +178,7 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 	}
 	await order.save();
 
-	metrics.completeOrder(order.type, order.offerId, payment.app_id );
+	metrics.completeOrder(order.type, order.offerId, payment.app_id, prevStatus, (order.currentStatusDate!.getTime() - prevStatusDate!.getTime()) / 1000);
 	logger.info(`completed order with payment <${payment.id}, ${payment.transaction_id}>`);
 }
 
