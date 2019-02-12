@@ -35,6 +35,7 @@ import {
 	create as createEarnTransactionBroadcastToBlockchainSubmitted
 } from "../../analytics/events/earn_transaction_broadcast_to_blockchain_submitted";
 import { remainingDailyMarketplaceOffers } from "../routes/users";
+import { getAppBlockchainVersion } from "./applications";
 
 export interface OrderList {
 	orders: Order[];
@@ -78,6 +79,16 @@ export async function getOrder(orderId: string, logger: LoggerInstance): Promise
 	return orderDbToApi(order);
 }
 
+export async function getOrderForWhitelisting(orderId: string): Promise<db.MarketplaceOrder| db.ExternalOrder> {
+	// Get order, regardless of status
+	const order = await db.Order.getOne(orderId) as db.MarketplaceOrder | db.ExternalOrder;
+
+	if (!order) {
+		throw NoSuchOrder(orderId);
+	}
+	return order;
+}
+
 export async function changeOrder(orderId: string, change: Partial<Order>, logger: LoggerInstance): Promise<Order> {
 	const order = await db.Order.getOne(orderId, "!opened") as db.MarketplaceOrder | db.ExternalOrder;
 
@@ -99,7 +110,11 @@ async function createOrder(offer: offerDb.Offer, user: User) {
 	if (await remainingDailyMarketplaceOffers(user.id) === 0) {
 		return undefined;
 	}
-	const { senderAddress, recipientAddress } = await extractMarketplaceOrderWalletAddresses(user, offer);
+	const app = await Application.findOneById(user.appId);
+	if (!app) {
+		throw NoSuchApp(user.appId);
+	}
+	const { senderAddress, recipientAddress } = await extractMarketplaceOrderWalletAddresses(user, offer, app);
 	const order = db.MarketplaceOrder.new({
 		userId: user.id,
 		type: offer.type,
@@ -111,12 +126,13 @@ async function createOrder(offer: offerDb.Offer, user: User) {
 		meta: offer.meta.order_meta,
 		blockchainData: {
 			sender_address: senderAddress,
-			recipient_address: recipientAddress
+			recipient_address: recipientAddress,
+			blockchain_version: app.config.blockchain_version
 		}
 	});
 
 	if (order.type === "spend" && recipientAddress) {
-		await addWatcherEndpoint([recipientAddress], order.id);
+		await addWatcherEndpoint(order.blockchainData.blockchain_version!, [recipientAddress], order.id);
 	}
 
 	await order.save();
@@ -125,12 +141,8 @@ async function createOrder(offer: offerDb.Offer, user: User) {
 	return order;
 }
 
-async function extractMarketplaceOrderWalletAddresses(user: User, offer: offerDb.Offer) {
-	const app = await Application.findOneById(user.appId);
-	if (!app) {
-		throw NoSuchApp(user.appId);
-	}
-	const senderAddress = offer.type === "spend" ? user.walletAddress : await selectSenderAddress(app.walletAddresses.sender, offer.amount);
+async function extractMarketplaceOrderWalletAddresses(user: User, offer: offerDb.Offer, app: Application) {
+	const senderAddress = offer.type === "spend" ? user.walletAddress : await selectSenderAddress(app.config.blockchain_version, app.walletAddresses.sender, offer.amount);
 	// spend marketplace offers shouldn't exists in production, and sending the funds to app wallet instead root wallet requires
 	// client change, for now keep it like before (client pay to root wallet address)
 	const recipientAddress = offer.type === "spend" ? offer.blockchainData.recipient_address : user.walletAddress;
@@ -185,7 +197,7 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 		if (payload.sub === "earn") {
 			title = (payload as ExternalEarnOrderJWT).recipient.title;
 			description = (payload as ExternalEarnOrderJWT).recipient.description;
-			sender_address = await selectSenderAddress(app.walletAddresses.sender, (payload as ExternalEarnOrderJWT).offer.amount);
+			sender_address = await selectSenderAddress(app.config.blockchain_version, app.walletAddresses.sender, (payload as ExternalEarnOrderJWT).offer.amount);
 			recipient_address = user.walletAddress;
 		} else if (payload.sub === "spend") {
 			// spend or pay_to_user
@@ -228,14 +240,15 @@ export async function createExternalOrder(jwt: string, user: User, logger: Logge
 			} : undefined,
 			blockchainData: {
 				sender_address,
-				recipient_address
+				recipient_address,
+				blockchain_version: app.config.blockchain_version
 			}
 		});
 
 		if (order.type === "pay_to_user") {
-			await addWatcherEndpoint([recipient_address], order.id);
+			await addWatcherEndpoint(order.blockchainData.blockchain_version!, [recipient_address], order.id);
 		} else if (order.type === "spend") {
-			await addWatcherEndpoint([app.walletAddresses.recipient], order.id);
+			await addWatcherEndpoint(order.blockchainData.blockchain_version!, [app.walletAddresses.recipient], order.id);
 		}
 
 		await order.save();
@@ -298,11 +311,12 @@ export async function submitOrder(
 	}
 
 	order.setStatus("pending");
+	order.blockchainData.blockchain_version = await getAppBlockchainVersion(appId);
 	await order.save();
 	logger.info("order changed to pending", { orderId });
 
 	if (order.type === "earn") {
-		await payment.payTo(walletAddress, order.blockchainData.sender_address!, appId, order.amount, order.id, true, logger);
+		await payment.payTo(order.blockchainData.blockchain_version!, walletAddress, order.blockchainData.sender_address!, appId, order.amount, order.id, true, logger);
 		createEarnTransactionBroadcastToBlockchainSubmitted(order.userId, order.offerId, order.id).report();
 	}
 
@@ -415,11 +429,11 @@ function getLockResource(type: "create" | "get", ...ids: string[]) {
 	return `locks:orders:${type}:${ids.join(":")}`;
 }
 
-export async function selectSenderAddress(db_sender_address: string, amount: Number): Promise<string> {
+export async function selectSenderAddress(blockchainVersion: string, db_sender_address: string, amount: Number): Promise<string> {
 	const our_wallet = db_sender_address.split(",")[0];
 	const joined_wallet = db_sender_address.split(",")[1];
 
-	const our_balance = (await payment.getWalletData(our_wallet)).kin_balance;
+	const our_balance = (await payment.getWalletData(blockchainVersion, our_wallet)).kin_balance;
 	if (our_balance > amount) {
 		return our_wallet;
 	}

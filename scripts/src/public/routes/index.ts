@@ -12,9 +12,10 @@ import {
 	submitOrder,
 	changeOrder,
 	createMarketplaceOrder,
-	createExternalOrder
+	createExternalOrder,
+	whitelistTransaction
 } from "./orders";
-import { getConfigHandler } from "./config";
+import { getConfigHandler, getAppBlockchainVersion, setAppBlockchainVersion } from "./config";
 import { statusHandler } from "../middleware";
 
 export type Context = {
@@ -85,7 +86,9 @@ function Router(): ExtendedRouter {
 export function createRoutes(app: express.Express, pathPrefix?: string) {
 	app.use(createPath("config", pathPrefix),
 		Router()
-			.get("/", getConfigHandler));
+			.get("/", getConfigHandler)
+			.get("/blockchain/:app_id", getAppBlockchainVersion)
+			.post("/blockchain/:app_id", setAppBlockchainVersion));
 
 	app.use(createPath("offers", pathPrefix),
 		Router()
@@ -103,6 +106,7 @@ export function createRoutes(app: express.Express, pathPrefix?: string) {
 			.authenticated(AuthScopes.TOS)
 			.get("/", getOrderHistory)
 			.get("/:order_id", getOrder)
+			.post("/:order_id/whitelist", whitelistTransaction)
 			.post("/:order_id", submitOrder)
 			.delete("/:order_id", cancelOrder)
 			.patch("/:order_id", changeOrder));

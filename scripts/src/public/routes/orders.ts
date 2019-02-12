@@ -3,6 +3,7 @@ import { Request, RequestHandler, Response } from "express";
 import {
 	Order,
 	getOrder as getOrderService,
+	getOrderForWhitelisting as getOrderForWhitelistingService,
 	cancelOrder as cancelOrderService,
 	submitOrder as submitOrderService,
 	changeOrder as changeOrderService,
@@ -10,6 +11,9 @@ import {
 	createExternalOrder as createExternalOrderService,
 	createMarketplaceOrder as createMarketplaceOrderService,
 } from "../services/orders";
+import { WhitelistTransactionByDifferentUser } from "../../errors";
+
+import { whitelistTransaction as whitelistTransactionService } from "../services/payment";
 
 export type CreateMarketplaceOrderRequest = Request & {
 	params: {
@@ -114,4 +118,26 @@ export const getOrderHistory = async function(req: GetOrderHistoryRequest, res: 
 	};
 	const orderList = await getOrderHistoryService(req.context.user!.id, filters, req.logger);
 	res.status(200).send(orderList);
+} as any as RequestHandler;
+
+export type WhitelistTransactionRequest = Request & {
+	params: {
+		order_id: string;
+	},
+	body: {
+		tx_envelope: string;
+		network_id: string;
+	}
+};
+
+/**
+ * whitelist user's transaction
+ */
+export const whitelistTransaction = async function(req: WhitelistTransactionRequest, res: Response) {
+	const order = await getOrderForWhitelistingService(req.params.order_id);
+	if (req.context.user!.id !== order.userId) {
+		throw WhitelistTransactionByDifferentUser(req.context.user!.appUserId);
+	}
+	const whitelistedTx = await whitelistTransactionService(order, req.body.network_id, req.body.tx_envelope, req.context.user!.appId);
+	res.status(200).send(whitelistedTx);
 } as any as RequestHandler;

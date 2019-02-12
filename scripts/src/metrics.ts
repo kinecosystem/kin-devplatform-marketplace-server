@@ -32,8 +32,10 @@ export function submitOrder(offerType: "earn" | "spend" | "pay_to_user", offerId
 	statsd.increment("submit_order", 1, undefined, { offer_type: offerType, offer_id: offerId, app_id: appId  });
 }
 
-export function completeOrder(offerType: "earn" | "spend" | "pay_to_user", offerId: string, appId: string) {
+export function completeOrder(offerType: "earn" | "spend" | "pay_to_user", offerId: string, appId: string, prevStatus: string, time: number) {
 	statsd.increment("complete_order", 1, undefined, { offer_type: offerType, offer_id: offerId, app_id: appId });
+	// time from last status
+	statsd.timing("complete_order_time", time, undefined, { offer_type: offerType, prev_status: prevStatus });
 }
 
 export function offersReturned(numOffers: number, appId: string) {

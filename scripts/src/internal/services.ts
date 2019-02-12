@@ -141,7 +141,9 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 		payment.app_id = user.appId;
 	}
 
+	const blockchain_version = order.blockchainData.blockchain_version;
 	order.blockchainData = pick(payment, "transaction_id", "sender_address", "recipient_address");
+	order.blockchainData.blockchain_version = blockchain_version;
 
 	if (order.isMarketplaceOrder()) {
 		if (order.type === "spend") {
@@ -166,15 +168,17 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 		order.error = null;
 	}
 
+	const prevStatus = order.status;
+	const prevStatusDate = order.currentStatusDate;
 	order.setStatus("completed");
 	if (order.type !== "earn" && order.isExternalOrder()) {
 		// If a completed order was a native spend or p2p, remove the watcher for that address
 		// If there are two or more orders for that address, the payment service will make sure not to completly remove it
-		await removeWatcherEndpoint(payment.recipient_address, order.id);
+		await removeWatcherEndpoint(order.blockchainData.blockchain_version!, payment.recipient_address, order.id);
 	}
 	await order.save();
 
-	metrics.completeOrder(order.type, order.offerId, payment.app_id );
+	metrics.completeOrder(order.type, order.offerId, payment.app_id, prevStatus, (order.currentStatusDate!.getTime() - prevStatusDate!.getTime()) / 1000);
 	logger.info(`completed order with payment <${payment.id}, ${payment.transaction_id}>`);
 }
 
