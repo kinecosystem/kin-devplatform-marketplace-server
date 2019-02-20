@@ -115,3 +115,11 @@ export const remainingDailyMarketplaceOffers = async function(userId: string): P
 	}
 	return 0;
 };
+
+export type RestorableRequest = Request & { wallet_address: string };
+
+export const isRestorable = async function(req: RestorableRequest, res: Response) {
+	const answer = await shouldAllowUpdatingWallet(req.params.wallet_address, req.context.user!.appId);
+
+	res.status(200).send({ restorable: answer });
+} as any as RequestHandler;
