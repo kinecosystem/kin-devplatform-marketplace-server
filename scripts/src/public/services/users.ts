@@ -9,6 +9,7 @@ import * as payment from "./payment";
 import { pick } from "../../utils";
 import * as metrics from "../../metrics";
 import { Application } from "../../models/applications";
+import { Wallet } from "../../models/wallets";
 
 export type AuthToken = {
 	token: string;
@@ -48,6 +49,7 @@ export async function getOrCreateUserCredentials(
 			existingUser.walletCount += 1;
 			existingUser.walletAddress = walletAddress;
 			await existingUser.save();
+			await Wallet.add(walletAddress, appId);
 			await payment.createWallet(app.config.blockchain_version, existingUser.walletAddress, existingUser.appId, existingUser.id, logger);
 			metrics.userRegister(false, true, appId);
 		} else {
@@ -62,6 +64,7 @@ export async function getOrCreateUserCredentials(
 			logger.info("creating a new user", { appId, appUserId });
 			user = User.new({ appUserId, appId, walletAddress });
 			await user.save();
+			await Wallet.add(walletAddress, appId);
 			logger.info(`creating stellar wallet for new user ${user.id}: ${user.walletAddress}`);
 			await payment.createWallet(app.config.blockchain_version, user.walletAddress, user.appId, user.id, logger);
 			metrics.userRegister(true, true, appId);

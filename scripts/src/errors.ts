@@ -51,6 +51,7 @@ const CODES = {
 		InvalidWalletAddress: 7,
 		MissingJwt: 8,
 		MaxWalletsExceeded: 9,
+		WalletWasNotCreatedInThisApp: 10,
 	},
 	TransactionFailed: {
 		WrongSender: 1,
@@ -258,4 +259,8 @@ export function TransactionTimeout() {
 
 export function InvalidWalletAddress(address: string) {
 	return BadRequestError(CODES.BadRequest.InvalidWalletAddress, `Invalid (not 56 characters) wallet address: ${ address }`);
+}
+
+export function WalletWasNotCreatedInThisApp(address: string, appId: string) {
+	return BadRequestError(CODES.BadRequest.WalletWasNotCreatedInThisApp, `Wallet wasn't created in this app. app id: ${ appId }, Wallet address: ${ address }`);
 }

@@ -1,5 +1,5 @@
 import { Request, Response, RequestHandler } from "express";
-import { InvalidWalletAddress, NoSuchApp, UnknownSignInType } from "../../errors";
+import { InvalidWalletAddress, NoSuchApp, UnknownSignInType, WalletWasNotCreatedInThisApp } from "../../errors";
 
 import {
 	getOrCreateUserCredentials,
@@ -14,6 +14,7 @@ import { Application, SignInType } from "../../models/applications";
 import { getConfig } from "../config";
 import * as dbOrders from "../../models/orders";
 import * as metrics from "../../metrics";
+import { Wallet } from "../../models/wallets";
 
 export type WalletData = { wallet_address: string };
 
@@ -84,6 +85,9 @@ export const updateUser = async function(req: UpdateUserRequest, res: Response) 
 	if (!walletAddress || walletAddress.length !== 56) {
 		throw InvalidWalletAddress(walletAddress);
 	}
+	if (! await shouldAllowUpdatingWallet(walletAddress, context.user!.appId)) {
+		throw WalletWasNotCreatedInThisApp(walletAddress, context.user!.appId);
+	}
 
 	context.user!.walletAddress = walletAddress;
 	await context.user!.save();
@@ -91,6 +95,10 @@ export const updateUser = async function(req: UpdateUserRequest, res: Response) 
 	metrics.walletAddressUpdate(context.user!.appId);
 	res.status(204).send();
 } as any as RequestHandler;
+
+const shouldAllowUpdatingWallet = async function(address: string, appId: string): Promise<boolean> {
+	return await Wallet.doesExist(address, appId);
+};
 
 /**
  * user activates by approving TOS
