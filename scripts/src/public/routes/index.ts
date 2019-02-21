@@ -4,7 +4,7 @@ import * as db from "../../models/users";
 import { TOSMissingOrOldToken } from "../../errors";
 import { authenticate } from "../auth";
 import { getOffers } from "./offers";
-import { signInUser, activateUser, updateUser } from "./users";
+import { signInUser, activateUser, updateUser, isRestorable } from "./users";
 import {
 	getOrder,
 	cancelOrder,
@@ -116,6 +116,7 @@ export function createRoutes(app: express.Express, pathPrefix?: string) {
 			.post("/", signInUser)
 			.authenticated() // no TOS scope
 			.patch("/", updateUser)
+			.get("/me/restorable/:wallet_address", isRestorable)
 			.post("/me/activate", activateUser));
 
 	app.get("/status", statusHandler);
