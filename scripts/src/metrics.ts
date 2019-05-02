@@ -25,15 +25,15 @@ export function timeRequest(time: number, method: string, path: string, appId: s
 }
 
 export function createOrder(orderType: "marketplace" | "external", offerType: "earn" | "spend" | "pay_to_user", offerId: string, appId: string) {
-	statsd.increment("create_order", 1, undefined, { order_type: orderType, offer_type: offerType, offer_id: offerId, app_id: appId });
+	statsd.increment("create_order", 1, undefined, { order_type: orderType, offer_type: offerType, app_id: appId });
 }
 
 export function submitOrder(offerType: "earn" | "spend" | "pay_to_user", offerId: string, appId: string) {
-	statsd.increment("submit_order", 1, undefined, { offer_type: offerType, offer_id: offerId, app_id: appId  });
+	statsd.increment("submit_order", 1, undefined, { offer_type: offerType, app_id: appId  });
 }
 
 export function completeOrder(offerType: "earn" | "spend" | "pay_to_user", offerId: string, appId: string, prevStatus: string, time: number) {
-	statsd.increment("complete_order", 1, undefined, { offer_type: offerType, offer_id: offerId, app_id: appId });
+	statsd.increment("complete_order", 1, undefined, { offer_type: offerType, app_id: appId });
 	// time from last status
 	statsd.timing("complete_order_time", time, undefined, { offer_type: offerType, prev_status: prevStatus });
 }
