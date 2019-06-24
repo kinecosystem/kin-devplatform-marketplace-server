@@ -5,7 +5,7 @@ import * as db from "../models/orders";
 import { User } from "../models/users";
 import { pick, removeDuplicates } from "../utils";
 import { Asset, Offer, OrderValue } from "../models/offers";
-import { addWatcherEndpoint, removeWatcherEndpoint, Watcher } from "../public/services/payment";
+import { addWatcherEndpoint, Watcher } from "../public/services/payment";
 import { create as createSpendOrderPaymentConfirmed } from "../analytics/events/spend_order_payment_confirmed";
 import { create as createStellarAccountCreationFailed } from "../analytics/events/stellar_account_creation_failed";
 import { create as createStellarAccountCreationSucceeded } from "../analytics/events/stellar_account_creation_succeeded";
@@ -171,11 +171,6 @@ export async function paymentComplete(payment: CompletedPayment, logger: LoggerI
 	const prevStatus = order.status;
 	const prevStatusDate = order.currentStatusDate;
 	order.setStatus("completed");
-	if (order.type !== "earn" && order.isExternalOrder()) {
-		// If a completed order was a native spend or p2p, remove the watcher for that address
-		// If there are two or more orders for that address, the payment service will make sure not to completly remove it
-		await removeWatcherEndpoint(order.blockchainData.blockchain_version!, payment.recipient_address, order.id);
-	}
 	await order.save();
 
 	metrics.completeOrder(order.type, order.offerId, payment.app_id, prevStatus, (order.currentStatusDate!.getTime() - prevStatusDate!.getTime()) / 1000);

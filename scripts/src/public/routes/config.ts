@@ -15,7 +15,7 @@ let JWT_KEYS: KeyMap;
 let BLOCKCHAIN: BlockchainConfig;
 
 export async function init() {
-	BLOCKCHAIN = await getBlockchainConfig("2", getDefaultLogger());
+	BLOCKCHAIN = await getBlockchainConfig("3", getDefaultLogger());
 	JWT_KEYS = await getJwtKeys();
 }
 
