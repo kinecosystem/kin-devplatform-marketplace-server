@@ -15,6 +15,7 @@ import { ContentType, Offer } from "./models/offers";
 import { StringMap, Application, ApplicationConfig } from "./models/applications";
 import "./models/orders";
 import "./models/users";
+import "./models/wallets";
 import { join } from "path";
 import { path } from "./utils";
 

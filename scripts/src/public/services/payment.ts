@@ -109,12 +109,6 @@ export async function addWatcherEndpoint(blockchainVersion: string, addresses: s
 	return res.data;
 }
 
-export async function removeWatcherEndpoint(blockchainVersion: string, addresse: string, orderId: string): Promise<Watcher> {
-	const payload: WatcherRemovalPayload = { wallet_address: addresse, order_id: orderId };
-	const res = await client.delete(`${getPaymentServiceUrl(blockchainVersion)}/watchers/${SERVICE_ID}`, { data: payload });
-	return res.data;
-}
-
 export type BlockchainConfig = {
 	horizon_url: string;
 	network_passphrase: string;
